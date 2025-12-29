@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FundedNext Live Roster</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: #e2e8f0;
+        }
+
+        body { font-family: sans-serif; background: var(--bg-body); margin: 0; padding: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-primary { background: var(--primary); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+
+        .card { background: var(--bg-card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card h3 { margin-top: 0; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        
+        .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .progress { height: 8px; background: #eee; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--success); width: 0%; transition: width 0.5s; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%; }
+        input, select { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* Loading Overlay */
+        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); display:none; justify-content:center; align-items:center; z-index:200; font-size: 20px; color: var(--primary); font-weight: bold;}
+    </style>
+</head>
+<body>
+
+<div id="loader">Loading Data from Sheet...</div>
+
+<header>
+    <h2>FundedNext Roster</h2>
+    <div>
+        <button class="btn btn-outline" onclick="fetchData()">Refresh Data</button>
+        <button class="btn btn-primary" onclick="openLeaveModal()">Apply Leave</button>
+    </div>
+</header>
+
+<!-- Date Filter -->
+<div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px;">
+    <label>Select Date to Check Availability: </label>
+    <input type="text" id="dateDisplay" readonly style="width: 200px; display: inline-block;">
+    <button class="btn btn-outline" style="padding: 5px 10px;" onclick="changeDate(-1)">Previous Day</button>
+    <button class="btn btn-outline" style="padding: 5px 10px;" onclick="changeDate(1)">Next Day</button>
+</div>
+
+<div id="teamGrid" class="dashboard-grid">
+    <!-- Teams injected here -->
+</div>
+
+<!-- Leave Modal -->
+<div id="leaveModal" class="modal">
+    <div class="modal-content">
+        <h3>Apply Leave</h3>
+        <label>Team</label>
+        <select id="leaveTeam" onchange="filterAgents()"></select>
+        
+        <label>Agent</label>
+        <select id="leaveAgent"></select>
+        
+        <label>Status</label>
+        <select id="leaveStatus">
+            <option value="Off Day">Off Day</option>
+            <option value="Sick Leave">Sick Leave</option>
+            <option value="Casual Leave">Casual Leave</option>
+        </select>
+
+        <div style="margin-top: 20px; text-align: right;">
+            <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitLeave()">Save to Sheet</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // CONFIGURATION
+    // ==========================================
+    // PASTE YOUR WEB APP URL HERE
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx59KU3Q7ariAEZdlVCahkHLJ6fRwaC-imwI9UI7Y0ULlaO1SIki_4zlsiVygdzE8HQ/exec"; 
+    // ==========================================
+
+    let allData = []; // Stores the roster from Google Sheet
+    let currentDateKey = ""; // Stores the header string (e.g., "29th Dec")
+    
+    // List of expected teams for filtering
+    const teams = [
+        "Email Support (Morning)", "Email Support (Evening)", "Email Support (VE)",
+        "PSTF (Morning)", "PSTF (Evening)", "PSTF Night Shift", "PSTF VE Shift",
+        "Morning Live chat (CFD)", "Evening Live Chat (CFD)", "CFD Live Chat Night Shift", "CFD Live chat VE",
+        "Live chat Morning (Futures)", "Live Chat Evening (Futures)", "Live Chat Night Shift (Futures)", "Live chat VE(Futures)",
+        "R&D"
+    ];
+
+    // Initial Load
+    window.onload = function() {
+        if(SCRIPT_URL.includes("PASTE_YOUR")) {
+            alert("Please edit the HTML file and paste your Google Script URL in the code (line 136)!");
+        } else {
+            fetchData();
+        }
+    };
+
+    // 1. Fetch Data from Google Sheet
+    async function fetchData() {
+        document.getElementById('loader').style.display = 'flex';
+        try {
+            const response = await fetch(SCRIPT_URL + "?action=getRoster");
+            const data = await response.json();
+            allData = data;
+            
+            // Set initial date (try to find "Today", otherwise take the first date column)
+            // Assuming the first date column is at index 2 in the row (based on script)
+            if(allData.length > 0 && Object.keys(allData[0].shifts).length > 0) {
+                const keys = Object.keys(allData[0].shifts);
+                currentDateKey = keys[0]; // Default to first column
+            }
+            
+            renderDashboard();
+        } catch (error) {
+            console.error(error);
+            alert("Error loading data. Check console.");
+        } finally {
+            document.getElementById('loader').style.display = 'none';
+        }
+    }
+
+    // 2. Render the Dashboard
+    function renderDashboard() {
+        document.getElementById('dateDisplay').value = currentDateKey;
+        const grid = document.getElementById('teamGrid');
+        grid.innerHTML = "";
+
+        // Group data by team
+        const teamsData = {};
+
+        teams.forEach(t => teamsData[t] = []);
+        allData.forEach(agent => {
+            if(teamsData[agent.team]) {
+                teamsData[agent.team].push(agent);
+            }
+        });
+
+        // Calculate and Render Cards
+        for (const [team, agents] of Object.entries(teamsData)) {
+            if (agents.length === 0) continue;
+
+            let available = 0;
+            let total = agents.length;
+            
+            agents.forEach(agent => {
+                const shift = agent.shifts[currentDateKey];
+                // Consider Off Day, Sick Leave, Casual Leave as unavailable
+                const status = (shift || "").toLowerCase();
+                if (
+!['off day', 'sick leave', 'casual leave', 'leave'].includes(status)
+) {
+                    available++;
+                }
+            });
+
+            // Create Card HTML
+            const shortage = available < (total * 0.5); // Simple logic: less than 50% is critical
+            const color = shortage ? 'var(--danger)' : 'var(--success)';
+            const percent = (available / total) * 100;
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <h3>${team}</h3>
+                <div class="stat-row">
+                    <span>Available: <b>${available}</b></span>
+                    <span>Total: ${total}</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" style="width: ${percent}%; background: ${color}"></div>
+                </div>
+                <small>${shortage ? 'Staff Shortage!' : 'Staffing OK'}</small>
+            `;
+            grid.appendChild(card);
+        }
+    }
+
+    // 3. Handle Date Change
+    function changeDate(dir) {
+        if(!allData.length) return;
+        const keys = Object.keys(allData[0].shifts);
+        let idx = keys.indexOf(currentDateKey);
+        
+        idx += dir;
+        if(idx >= 0 && idx < keys.length) {
+            currentDateKey = keys[idx];
+            renderDashboard();
+        }
+    }
+
+    // 4. Leave Modal Logic
+    function openLeaveModal() {
+        const teamSelect = document.getElementById('leaveTeam');
+        teamSelect.innerHTML = "";
+        teams.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.innerText = t;
+            teamSelect.appendChild(opt);
+        });
+        filterAgents(); // Load agents for first team
+        document.getElementById('leaveModal').classList.add('active');
+    }
+
+    function filterAgents() {
+        const selectedTeam = document.getElementById('leaveTeam').value;
+        const agentSelect = document.getElementById('leaveAgent');
+        agentSelect.innerHTML = "";
+        
+        const agents = allData.filter(a => a.team === selectedTeam);
+        agents.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id; // ID is row number
+            opt.innerText = a.name;
+            agentSelect.appendChild(opt);
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('leaveModal').classList.remove('active');
+    }
+
+    // 5. Submit Leave to Google Sheet
+    async function submitLeave() {
+        const agentId = document.getElementById('leaveAgent').value;
+        const status = document.getElementById('leaveStatus').value;
+        
+        // Prepare Payload
+        const payload = {
+            action: "updateLeave",
+            agentId: agentId,
+            dateHeader: currentDateKey,
+            status: status
+        };
+
+        document.getElementById('loader').style.display = 'flex';
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            
+            if(result.success) {
+                alert("Leave updated successfully!");
+                closeModal();
+                fetchData(); // Reload data
+            } else {
+                alert("Error: " + result.error);
+            }
+        } catch (err) {
+            alert("Network Error");
+        } finally {
+            document.getElementById('loader').style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
