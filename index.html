@@ -1,208 +1,155 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CEx Roster Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom Utilities */
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 30px; height: 30px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hidden-input { display: none; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
-
-    <!-- Loading Overlay -->
-    <div id="loaderOverlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
-        <div class="loader mb-4"></div>
-        <div id="loaderText" class="font-bold text-blue-600">Loading Data...</div>
-    </div>
-
-    <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-2 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                </div>
-                <h1 class="text-xl font-bold text-slate-800">FundedNext CEx Roster</h1>
-            </div>
-
-            <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                <span class="text-sm text-slate-500 font-medium px-2">Date:</span>
-                <input type="date" id="datePicker" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2">
-                <button onclick="app.refreshData()" class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition" title="Refresh">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                </button>
-            </div>
-            
-            <div>
-                <button id="adminToggleBtn" onclick="app.toggleAdmin()" class="text-xs text-slate-400 hover:text-slate-600 underline">Admin Mode</button>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        
-        <!-- Admin Controls (Hidden by default) -->
-        <div id="adminPanel" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-xl fade-in">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="font-bold text-amber-800">⚠️ Admin Roster Update</h3>
-                <button onclick="app.toggleAdmin()" class="text-xs text-amber-700 underline">Close</button>
-            </div>
-            <p class="text-sm text-amber-700 mb-4">Use this to correct shift times or mark an off day incorrectly in the master data.</p>
-            <button onclick="app.openRosterEditModal()" class="bg-amber-600 text-white px-4 py-2 rounded text-sm hover:bg-amber-700 font-medium">Update Roster Entry</button>
-        </div>
-
-        <!-- Stats Grid -->
-        <div id="teamGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Cards Injected Here -->
-        </div>
-
-        <!-- Empty State -->
-        <div id="emptyState" class="hidden text-center py-20">
-            <p class="text-slate-400">No roster data found for this date.</p>
-        </div>
-    </main>
-
-    <!-- Modals -->
-
-    <!-- 1. Team Detail Modal -->
-    <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('detailModal')"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full fade-in">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start justify-between">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTeamTitle">Team Name</h3>
-                        <button onclick="app.closeModal('detailModal')" class="text-gray-400 hover:text-gray-500">&times;</button>
-                    </div>
-                    <div class="mt-4">
-                        <ul id="agentList" class="divide-y divide-gray-200">
-                            <!-- Agent Rows -->
-                        </ul>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="app.openLeaveModal()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">Apply Leave</button>
-                    <button type="button" onclick="app.closeModal('detailModal')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. Leave Modal -->
-    <div id="leaveModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveModal')"></div>
-            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
-                <h3 class="text-xl font-bold mb-4">Apply Leave</h3>
-                <form id="leaveForm" onsubmit="event.preventDefault(); app.submitLeave();">
-                    <input type="hidden" id="leaveTeam">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
-                        <input type="text" id="leaveAgentDisplay" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100">
-                        <input type="hidden" id="leaveAgentName">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" id="leaveDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
-                        <select id="leaveType" class="w-full border border-gray-300 rounded p-2">
-                            <option value="Sick Leave">Sick Leave</option>
-                            <option value="Casual Leave">Casual Leave</option>
-                            <option value="Emergency">Emergency</option>
-                            <option value="Full Day">Full Day</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                        <textarea id="leaveNotes" rows="3" class="w-full border border-gray-300 rounded p-2"></textarea>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="app.closeModal('leaveModal')" class="px-4 py-2 border rounded text-gray-700">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. Roster Edit Modal (Admin) -->
-    <div id="rosterEditModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('rosterEditModal')"></div>
-            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
-                <h3 class="text-xl font-bold mb-4 text-amber-800">Update Roster Data</h3>
-                <p class="text-xs text-gray-500 mb-4">This updates the master Roster_Data table.</p>
-                <form id="rosterForm" onsubmit="event.preventDefault(); app.submitRosterUpdate();">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Team</label>
-                        <select id="rosterTeam" onchange="app.populateRosterAgents()" class="w-full border border-gray-300 rounded p-2">
-                            <!-- Teams populated via JS -->
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
-                        <select id="rosterAgent" class="w-full border border-gray-300 rounded p-2">
-                            <option value="">Select Team First</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" id="rosterDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100">
-                    </div>
-                    <div class="mb-4">
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" id="rosterIsOffDay" onchange="app.toggleShiftInput()">
-                            <span class="text-sm font-medium">Is Off Day?</span>
-                        </label>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Shift Time</label>
-                        <input type="text" id="rosterShift" placeholder="e.g. 9:00AM - 6:00PM" class="w-full border border-gray-300 rounded p-2">
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="app.closeModal('rosterEditModal')" class="px-4 py-2 border rounded text-gray-700">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">Update Data</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
-        <span id="toastMessage">Notification</span>
-    </div>
-
     <script>
         // ==========================================
         // CONFIGURATION
         // ==========================================
         const CONFIG = {
             SCRIPT_URL: "https://script.google.com/macros/s/AKfycbx59KU3Q7ariAEZdlVCahkHLJ6fRwaC-imwI9UI7Y0ULlaO1SIki_4zlsiVygdzE8HQ/exec",
+            
             TEAMS: [
                 "Email Support (Morning)", "Email Support (Evening)", "Email Support (VE)",
                 "PSTF (Morning)", "PSTF (Evening)", "PSTF Night Shift", "PSTF VE Shift",
                 "Morning Live chat (CFD)", "Evening Live Chat (CFD)", "CFD Live Chat Night Shift", "CFD Live chat VE",
                 "Live chat Morning (Futures)", "Live Chat Evening (Futures)", "Live Chat Night Shift (Futures)", "Live chat VE (Futures)",
                 "R&D"
-            ]
+            ],
+
+            // AGENT MASTER LIST - Maps Teams to their specific Agents
+            AGENT_MASTER_LIST: {
+                "Email Support (Morning)": [
+                    "Jerin Tasneem Prova (Jane Megan)", 
+                    "Faiyaz Muhtasim Ahmed (Fredy Martinez)", 
+                    "S. M. Sourav Sagor (Sandro Jerome)", 
+                    "Izaz Ahmed Fuad (Jack Carter)", 
+                    "Manish Sarkar (Tyson Mayne)"
+                ],
+                "Email Support (Evening)": [
+                    "Abir Hassan Pial (William Grace)", 
+                    "Nasrin Hossain Preya (Prina Isabella)", 
+                    "Md. M Z Mahiduddin Shameem (Sammy Sage)", 
+                    "Md. Rakib Hossain (Ricky Ron)", 
+                    "M M Abir Ahmed Mugdho (Danny Archer)", 
+                    "M I Fahim Alam (Ben Clark)"
+                ],
+                "Email Support (VE)": [
+                    "MD Nayeem Hossain", 
+                    "Nasif Ul Islam", 
+                    "Sazzadul Haque Jony"
+                ],
+                "PSTF (Morning)": [
+                    "Jerin Tasneem Prova (Jane Megan)", 
+                    "Faiyaz Muhtasim Ahmed (Fredy Martinez)", 
+                    "S. M. Sourav Sagor (Sandro Jerome)", 
+                    "Izaz Ahmed Fuad (Jack Carter)", 
+                    "Manish Sarkar (Tyson Mayne)"
+                ],
+                "PSTF (Evening)": [
+                    "Abir Hassan Pial (William Grace)", 
+                    "Nasrin Hossain Preya (Prina Isabella)", 
+                    "Md. M Z Mahiduddin Shameem (Sammy Sage)", 
+                    "Md. Rakib Hossain (Ricky Ron)", 
+                    "M M Abir Ahmed Mugdho (Danny Archer)", 
+                    "M I Fahim Alam (Ben Clark)"
+                ],
+                "PSTF Night Shift": [
+                    "MD Nayeem Hossain"
+                ],
+                "PSTF VE Shift": [
+                    "Nasif Ul Islam", 
+                    "Sazzadul Haque Jony"
+                ],
+                "Morning Live chat (CFD)": [
+                    "Md. Faisal Niyam (Lyra Lopez)", 
+                    "Rakibul Hasan Remon (Grace Bexley)", 
+                    "Ashraful Zannat (Skylar Maddison)", 
+                    "Md. Zunaid (Penny Reed)", 
+                    "Rakibul Islam (Samy Zayn)", 
+                    "Marzahan Binte Sarker (Zofia Meier)", 
+                    "Jake Devadason (Jay Walker)", 
+                    "Shadrach Jayasinghe (Lian Carter)", 
+                    "Jessica Dehodet (Emma Sinclair)", 
+                    "Selena Leard"
+                ],
+                "Evening Live Chat (CFD)": [
+                    "Tahseen Tayeb Kabir (Andrew Clarkson)", 
+                    "Raiyan Ramin (Tom Matthew)", 
+                    "Rumana Hossain Mow (Ruby Foster)", 
+                    "Samik Ahmed Eshti (Jay Dawson)", 
+                    "Nayema Nawshin Rahman Aroni (Annie Jan)", 
+                    "Md. Tanjin Ul Hoque (Tazien Morgan)", 
+                    "Rabit Al Hassan", 
+                    "Ashraful Islam", 
+                    "Rahat Rafsan", 
+                    "Umme Salma Jui (Zara Monroe)", 
+                    "Ashika Rahman (Ashley Stinson)", 
+                    "Nushrat Hasan (Arya Blossom)", 
+                    "Shaziq Hossain (Jeff Bloom)", 
+                    "Nusrat Jahan Bidhe (Bella Calhoun)", 
+                    "Rayan Alahakoon", 
+                    "Sithil Waduge", 
+                    "Darren Perera", 
+                    "Ryan Patternot", 
+                    "Matheesha Aswella"
+                ],
+                "CFD Live Chat Night Shift": [
+                    "Tariqul Islam", 
+                    "Rahat Rafsan", 
+                    "Md. Rafi Hasan", 
+                    "Md Obaidur Rahman Dip", 
+                    "Fatin Farhan Juboraj", 
+                    "Abdullah Al Jubair", 
+                    "Rafi Bin Zahid"
+                ],
+                "CFD Live chat VE": [
+                    "Elias Arman Bappi (Casey Cooper)", 
+                    "Shaklain Mohammed Sifat (Thea Quinn)", 
+                    "Maisha Mahzabeen Zaara (Katherine Pierce)", 
+                    "Al-Zawad Islam Shadman (Selena Mercer)", 
+                    "Riad Hasan Munsi (James Preston)", 
+                    "Showmik Gaznabi"
+                ],
+                "Live chat Morning (Futures)": [
+                    "Mobasshira Islam", 
+                    "Sumic Maclean Gomes", 
+                    "Pingkon Augustine Rozario", 
+                    "Abidur Rahman (Mark Walter)", 
+                    "Prince Zakaria", 
+                    "Kithmal Wickramasingha"
+                ],
+                "Live Chat Evening (Futures)": [
+                    "Meshak Abedin", 
+                    "Janannt Ara (Nicky Brown)", 
+                    "Dewan MD Rubayet Rafit", 
+                    "Prince Zakaria", 
+                    "Abishek Sasikumar", 
+                    "Rizny Azmy"
+                ],
+                "Live Chat Night Shift (Futures)": [
+                    "Sheikh Shahariar Shohag", 
+                    "Shadib Hasan Anik", 
+                    "MD Khalid Hasan", 
+                    "Rifa Islam Prova", 
+                    "Samiul Sakib Rafin", 
+                    "Afifa Islam Fiha"
+                ],
+                "Live chat VE (Futures)": [
+                    "Sheikh Shahariar Shohag", 
+                    "Shadib Hasan Anik", 
+                    "MD Khalid Hasan", 
+                    "Rifa Islam Prova", 
+                    "Samiul Sakib Rafin", 
+                    "Afifa Islam Fiha", 
+                    "Rajen Morshed Eida", 
+                    "Md. Sadman", 
+                    "Md Farhan Taher Oishik", 
+                    "Sheikh Sajid Hasnain"
+                ],
+                "R&D": [
+                    "Khaled Mahmud Sultan", 
+                    "Mirza Moshirur Rahman Shizan", 
+                    "Mir Sazzad Hossain", 
+                    "Shahriar Hossain Sajol"
+                ]
+            }
         };
 
         // ==========================================
@@ -418,28 +365,29 @@
                 shiftInput.classList.toggle('bg-gray-100', isOff);
             },
 
-            async populateRosterAgents() {
+            populateRosterAgents() {
                 const team = document.getElementById('rosterTeam').value;
                 const agentSelect = document.getElementById('rosterAgent');
                 agentSelect.innerHTML = '<option value="">Select Agent</option>';
                 
                 if (!team) return;
 
-                // We need to fetch existing data for this team/date to populate names properly
-                // or just rely on the user knowing names? Better to fetch.
-                this.showLoader(true);
-                try {
-                    const url = `${CONFIG.SCRIPT_URL}?action=teamDetails&date=${this.state.currentDate}&team=${encodeURIComponent(team)}`;
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    
-                    data.agents.forEach(a => {
+                // Use the hardcoded master list to populate dropdown immediately
+                // This allows adding data for the first time even if Sheet is empty
+                const agents = CONFIG.AGENT_MASTER_LIST[team];
+
+                if (agents) {
+                    agents.forEach(name => {
                         const opt = document.createElement('option');
-                        opt.value = a.name;
-                        opt.textContent = a.name;
+                        opt.value = name;
+                        opt.textContent = name;
                         agentSelect.appendChild(opt);
                     });
-                } catch(e) { console.error(e); } finally { this.showLoader(false); }
+                } else {
+                    const opt = document.createElement('option');
+                    opt.textContent = "No agents defined in config";
+                    agentSelect.appendChild(opt);
+                }
             },
 
             async submitRosterUpdate() {
@@ -502,5 +450,3 @@
         // Boot
         window.addEventListener('DOMContentLoaded', () => app.init());
     </script>
-</body>
-</html>
