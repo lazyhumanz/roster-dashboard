@@ -3,283 +3,504 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FundedNext Live Roster</title>
+    <title>CEx Roster Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg-body: #f1f5f9;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --danger: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --border: #e2e8f0;
+        /* Custom Utilities */
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            animation: spin 1s linear infinite;
         }
-
-        body { font-family: sans-serif; background: var(--bg-body); margin: 0; padding: 20px; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
-        .btn-primary { background: var(--primary); }
-        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
-
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-
-        .card { background: var(--bg-card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .card h3 { margin-top: 0; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        
-        .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
-        .progress { height: 8px; background: #eee; border-radius: 4px; margin-top: 10px; overflow: hidden; }
-        .progress-bar { height: 100%; background: var(--success); width: 0%; transition: width 0.5s; }
-
-        /* Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%; }
-        input, select { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
-        
-        /* Loading Overlay */
-        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); display:none; justify-content:center; align-items:center; z-index:200; font-size: 20px; color: var(--primary); font-weight: bold;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden-input { display: none; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
 
-<div id="loader">Loading Data from Sheet...</div>
-
-<header>
-    <h2>FundedNext Roster</h2>
-    <div>
-        <button class="btn btn-outline" onclick="fetchData()">Refresh Data</button>
-        <button class="btn btn-primary" onclick="openLeaveModal()">Apply Leave</button>
+    <!-- Loading Overlay -->
+    <div id="loaderOverlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
+        <div class="loader mb-4"></div>
+        <div id="loaderText" class="font-bold text-blue-600">Loading Data...</div>
     </div>
-</header>
 
-<!-- Date Filter -->
-<div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px;">
-    <label>Select Date to Check Availability: </label>
-    <input type="text" id="dateDisplay" readonly style="width: 200px; display: inline-block;">
-    <button class="btn btn-outline" style="padding: 5px 10px;" onclick="changeDate(-1)">Previous Day</button>
-    <button class="btn btn-outline" style="padding: 5px 10px;" onclick="changeDate(1)">Next Day</button>
-</div>
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">FundedNext CEx Roster</h1>
+            </div>
 
-<div id="teamGrid" class="dashboard-grid">
-    <!-- Teams injected here -->
-</div>
+            <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                <span class="text-sm text-slate-500 font-medium px-2">Date:</span>
+                <input type="date" id="datePicker" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2">
+                <button onclick="app.refreshData()" class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition" title="Refresh">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+            </div>
+            
+            <div>
+                <button id="adminToggleBtn" onclick="app.toggleAdmin()" class="text-xs text-slate-400 hover:text-slate-600 underline">Admin Mode</button>
+            </div>
+        </div>
+    </header>
 
-<!-- Leave Modal -->
-<div id="leaveModal" class="modal">
-    <div class="modal-content">
-        <h3>Apply Leave</h3>
-        <label>Team</label>
-        <select id="leaveTeam" onchange="filterAgents()"></select>
+    <main class="max-w-7xl mx-auto px-4 py-8">
         
-        <label>Agent</label>
-        <select id="leaveAgent"></select>
-        
-        <label>Status</label>
-        <select id="leaveStatus">
-            <option value="Off Day">Off Day</option>
-            <option value="Sick Leave">Sick Leave</option>
-            <option value="Casual Leave">Casual Leave</option>
-        </select>
+        <!-- Admin Controls (Hidden by default) -->
+        <div id="adminPanel" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-xl fade-in">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="font-bold text-amber-800">⚠️ Admin Roster Update</h3>
+                <button onclick="app.toggleAdmin()" class="text-xs text-amber-700 underline">Close</button>
+            </div>
+            <p class="text-sm text-amber-700 mb-4">Use this to correct shift times or mark an off day incorrectly in the master data.</p>
+            <button onclick="app.openRosterEditModal()" class="bg-amber-600 text-white px-4 py-2 rounded text-sm hover:bg-amber-700 font-medium">Update Roster Entry</button>
+        </div>
 
-        <div style="margin-top: 20px; text-align: right;">
-            <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="submitLeave()">Save to Sheet</button>
+        <!-- Stats Grid -->
+        <div id="teamGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Cards Injected Here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-20">
+            <p class="text-slate-400">No roster data found for this date.</p>
+        </div>
+    </main>
+
+    <!-- Modals -->
+
+    <!-- 1. Team Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('detailModal')"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full fade-in">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start justify-between">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTeamTitle">Team Name</h3>
+                        <button onclick="app.closeModal('detailModal')" class="text-gray-400 hover:text-gray-500">&times;</button>
+                    </div>
+                    <div class="mt-4">
+                        <ul id="agentList" class="divide-y divide-gray-200">
+                            <!-- Agent Rows -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="app.openLeaveModal()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">Apply Leave</button>
+                    <button type="button" onclick="app.closeModal('detailModal')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    // ==========================================
-    // CONFIGURATION
-    // ==========================================
-    // PASTE YOUR WEB APP URL HERE
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx59KU3Q7ariAEZdlVCahkHLJ6fRwaC-imwI9UI7Y0ULlaO1SIki_4zlsiVygdzE8HQ/exec"; 
-    // ==========================================
+    <!-- 2. Leave Modal -->
+    <div id="leaveModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveModal')"></div>
+            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
+                <h3 class="text-xl font-bold mb-4">Apply Leave</h3>
+                <form id="leaveForm" onsubmit="event.preventDefault(); app.submitLeave();">
+                    <input type="hidden" id="leaveTeam">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+                        <input type="text" id="leaveAgentDisplay" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100">
+                        <input type="hidden" id="leaveAgentName">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="leaveDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
+                        <select id="leaveType" class="w-full border border-gray-300 rounded p-2">
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Casual Leave">Casual Leave</option>
+                            <option value="Emergency">Emergency</option>
+                            <option value="Full Day">Full Day</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                        <textarea id="leaveNotes" rows="3" class="w-full border border-gray-300 rounded p-2"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="app.closeModal('leaveModal')" class="px-4 py-2 border rounded text-gray-700">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-    let allData = []; // Stores the roster from Google Sheet
-    let currentDateKey = ""; // Stores the header string (e.g., "29th Dec")
-    
-    // List of expected teams for filtering
-    const teams = [
-        "Email Support (Morning)", "Email Support (Evening)", "Email Support (VE)",
-        "PSTF (Morning)", "PSTF (Evening)", "PSTF Night Shift", "PSTF VE Shift",
-        "Morning Live chat (CFD)", "Evening Live Chat (CFD)", "CFD Live Chat Night Shift", "CFD Live chat VE",
-        "Live chat Morning (Futures)", "Live Chat Evening (Futures)", "Live Chat Night Shift (Futures)", "Live chat VE(Futures)",
-        "R&D"
-    ];
+    <!-- 3. Roster Edit Modal (Admin) -->
+    <div id="rosterEditModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('rosterEditModal')"></div>
+            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
+                <h3 class="text-xl font-bold mb-4 text-amber-800">Update Roster Data</h3>
+                <p class="text-xs text-gray-500 mb-4">This updates the master Roster_Data table.</p>
+                <form id="rosterForm" onsubmit="event.preventDefault(); app.submitRosterUpdate();">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Team</label>
+                        <select id="rosterTeam" onchange="app.populateRosterAgents()" class="w-full border border-gray-300 rounded p-2">
+                            <!-- Teams populated via JS -->
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+                        <select id="rosterAgent" class="w-full border border-gray-300 rounded p-2">
+                            <option value="">Select Team First</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="rosterDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100">
+                    </div>
+                    <div class="mb-4">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="rosterIsOffDay" onchange="app.toggleShiftInput()">
+                            <span class="text-sm font-medium">Is Off Day?</span>
+                        </label>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shift Time</label>
+                        <input type="text" id="rosterShift" placeholder="e.g. 9:00AM - 6:00PM" class="w-full border border-gray-300 rounded p-2">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="app.closeModal('rosterEditModal')" class="px-4 py-2 border rounded text-gray-700">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700">Update Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-    // Initial Load
-    window.onload = function() {
-        if(SCRIPT_URL.includes("PASTE_YOUR")) {
-            alert("Please edit the HTML file and paste your Google Script URL in the code (line 136)!");
-        } else {
-            fetchData();
-        }
-    };
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <span id="toastMessage">Notification</span>
+    </div>
 
-    // 1. Fetch Data from Google Sheet
-    async function fetchData() {
-        document.getElementById('loader').style.display = 'flex';
-        try {
-            const response = await fetch(SCRIPT_URL + "?action=getRoster");
-            const data = await response.json();
-            allData = data;
-            
-            // Set initial date (try to find "Today", otherwise take the first date column)
-            // Assuming the first date column is at index 2 in the row (based on script)
-            if(allData.length > 0 && Object.keys(allData[0].shifts).length > 0) {
-                const keys = Object.keys(allData[0].shifts);
-                currentDateKey = keys[0]; // Default to first column
-            }
-            
-            renderDashboard();
-        } catch (error) {
-            console.error(error);
-            alert("Error loading data. Check console.");
-        } finally {
-            document.getElementById('loader').style.display = 'none';
-        }
-    }
-
-    // 2. Render the Dashboard
-    function renderDashboard() {
-        document.getElementById('dateDisplay').value = currentDateKey;
-        const grid = document.getElementById('teamGrid');
-        grid.innerHTML = "";
-
-        // Group data by team
-        const teamsData = {};
-
-        teams.forEach(t => teamsData[t] = []);
-        allData.forEach(agent => {
-            if(teamsData[agent.team]) {
-                teamsData[agent.team].push(agent);
-            }
-        });
-
-        // Calculate and Render Cards
-        for (const [team, agents] of Object.entries(teamsData)) {
-            if (agents.length === 0) continue;
-
-            let available = 0;
-            let total = agents.length;
-            
-            agents.forEach(agent => {
-                const shift = agent.shifts[currentDateKey];
-                // Consider Off Day, Sick Leave, Casual Leave as unavailable
-                const status = (shift || "").toLowerCase();
-                if (
-!['off day', 'sick leave', 'casual leave', 'leave'].includes(status)
-) {
-                    available++;
-                }
-            });
-
-            // Create Card HTML
-            const shortage = available < (total * 0.5); // Simple logic: less than 50% is critical
-            const color = shortage ? 'var(--danger)' : 'var(--success)';
-            const percent = (available / total) * 100;
-
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <h3>${team}</h3>
-                <div class="stat-row">
-                    <span>Available: <b>${available}</b></span>
-                    <span>Total: ${total}</span>
-                </div>
-                <div class="progress">
-                    <div class="progress-bar" style="width: ${percent}%; background: ${color}"></div>
-                </div>
-                <small>${shortage ? 'Staff Shortage!' : 'Staffing OK'}</small>
-            `;
-            grid.appendChild(card);
-        }
-    }
-
-    // 3. Handle Date Change
-    function changeDate(dir) {
-        if(!allData.length) return;
-        const keys = Object.keys(allData[0].shifts);
-        let idx = keys.indexOf(currentDateKey);
-        
-        idx += dir;
-        if(idx >= 0 && idx < keys.length) {
-            currentDateKey = keys[idx];
-            renderDashboard();
-        }
-    }
-
-    // 4. Leave Modal Logic
-    function openLeaveModal() {
-        const teamSelect = document.getElementById('leaveTeam');
-        teamSelect.innerHTML = "";
-        teams.forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t;
-            opt.innerText = t;
-            teamSelect.appendChild(opt);
-        });
-        filterAgents(); // Load agents for first team
-        document.getElementById('leaveModal').classList.add('active');
-    }
-
-    function filterAgents() {
-        const selectedTeam = document.getElementById('leaveTeam').value;
-        const agentSelect = document.getElementById('leaveAgent');
-        agentSelect.innerHTML = "";
-        
-        const agents = allData.filter(a => a.team === selectedTeam);
-        agents.forEach(a => {
-            const opt = document.createElement('option');
-            opt.value = a.id; // ID is row number
-            opt.innerText = a.name;
-            agentSelect.appendChild(opt);
-        });
-    }
-
-    function closeModal() {
-        document.getElementById('leaveModal').classList.remove('active');
-    }
-
-    // 5. Submit Leave to Google Sheet
-    async function submitLeave() {
-        const agentId = document.getElementById('leaveAgent').value;
-        const status = document.getElementById('leaveStatus').value;
-        
-        // Prepare Payload
-        const payload = {
-            action: "updateLeave",
-            agentId: agentId,
-            dateHeader: currentDateKey,
-            status: status
+    <script>
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        const CONFIG = {
+            SCRIPT_URL: "https://script.google.com/macros/s/AKfycbx59KU3Q7ariAEZdlVCahkHLJ6fRwaC-imwI9UI7Y0ULlaO1SIki_4zlsiVygdzE8HQ/exec",
+            TEAMS: [
+                "Email Support (Morning)", "Email Support (Evening)", "Email Support (VE)",
+                "PSTF (Morning)", "PSTF (Evening)", "PSTF Night Shift", "PSTF VE Shift",
+                "Morning Live chat (CFD)", "Evening Live Chat (CFD)", "CFD Live Chat Night Shift", "CFD Live chat VE",
+                "Live chat Morning (Futures)", "Live Chat Evening (Futures)", "Live Chat Night Shift (Futures)", "Live chat VE (Futures)",
+                "R&D"
+            ]
         };
 
-        document.getElementById('loader').style.display = 'flex';
-        try {
-            const response = await fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-            
-            if(result.success) {
-                alert("Leave updated successfully!");
-                closeModal();
-                fetchData(); // Reload data
-            } else {
-                alert("Error: " + result.error);
-            }
-        } catch (err) {
-            alert("Network Error");
-        } finally {
-            document.getElementById('loader').style.display = 'none';
-        }
-    }
-</script>
+        // ==========================================
+        // APP LOGIC
+        // ==========================================
+        const app = {
+            state: {
+                currentDate: new Date().toISOString().split('T')[0],
+                currentTeam: null,
+                currentAgent: null, // For leave modal
+                adminMode: false
+            },
 
+            init() {
+                // Set Date Picker
+                document.getElementById('datePicker').value = this.state.currentDate;
+                document.getElementById('datePicker').addEventListener('change', (e) => {
+                    this.state.currentDate = e.target.value;
+                    this.refreshData();
+                });
+
+                // Populate Admin Team Dropdown
+                const teamSelect = document.getElementById('rosterTeam');
+                CONFIG.TEAMS.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    teamSelect.appendChild(opt);
+                });
+
+                this.refreshData();
+            },
+
+            toggleAdmin() {
+                this.state.adminMode = !this.state.adminMode;
+                const panel = document.getElementById('adminPanel');
+                const btn = document.getElementById('adminToggleBtn');
+                
+                if (this.state.adminMode) {
+                    panel.classList.remove('hidden');
+                    btn.textContent = "Exit Admin";
+                    btn.classList.add('text-red-600');
+                } else {
+                    panel.classList.add('hidden');
+                    btn.textContent = "Admin Mode";
+                    btn.classList.remove('text-red-600');
+                }
+            },
+
+            async refreshData() {
+                this.showLoader(true);
+                try {
+                    const response = await fetch(`${CONFIG.SCRIPT_URL}?action=summary&date=${this.state.currentDate}`);
+                    const data = await response.json();
+                    
+                    if (data.error) throw new Error(data.error);
+                    this.renderDashboard(data);
+                } catch (err) {
+                    console.error(err);
+                    this.toast("Failed to load data", "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            renderDashboard(data) {
+                const grid = document.getElementById('teamGrid');
+                grid.innerHTML = '';
+                
+                if (data.teams.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                    return;
+                }
+                document.getElementById('emptyState').classList.add('hidden');
+
+                data.teams.forEach(team => {
+                    const isShortage = team.shortage;
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition cursor-pointer border-l-4 " + (isShortage ? "border-red-500" : "border-green-500");
+                    
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="font-bold text-gray-800 text-lg leading-tight">${team.team}</h3>
+                            <span class="text-xs font-semibold px-2 py-1 rounded ${isShortage ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                ${isShortage ? 'Shortage' : 'OK'}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Available</p>
+                                <p class="text-2xl font-bold text-gray-900">${team.available}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">Total / Req</p>
+                                <p class="text-sm font-semibold text-gray-600">${team.total} <span class="text-gray-400">/ ${team.required}</span></p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm text-gray-500">
+                            <span>Off: ${team.offDay}</span>
+                            <span>Leave: ${team.onLeave}</span>
+                        </div>
+                    `;
+                    
+                    card.onclick = () => this.loadTeamDetails(team.team);
+                    grid.appendChild(card);
+                });
+            },
+
+            async loadTeamDetails(teamName) {
+                this.showLoader(true);
+                this.state.currentTeam = teamName;
+                
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=teamDetails&date=${this.state.currentDate}&team=${encodeURIComponent(teamName)}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.error) throw new Error(data.error);
+                    
+                    document.getElementById('modalTeamTitle').textContent = data.team;
+                    const list = document.getElementById('agentList');
+                    list.innerHTML = '';
+                    
+                    data.agents.forEach(agent => {
+                        let statusBadge = '';
+                        if (agent.onLeave) statusBadge = '<span class="ml-2 px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-xs">Leave</span>';
+                        else if (agent.isOffDay) statusBadge = '<span class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">Off</span>';
+                        
+                        const li = document.createElement('li');
+                        li.className = "py-3 flex justify-between items-center";
+                        li.innerHTML = `
+                            <div>
+                                <p class="font-medium text-gray-900">${agent.name} ${statusBadge}</p>
+                                <p class="text-sm text-gray-500">${agent.shift || '--'}</p>
+                            </div>
+                            <button onclick="app.prepLeave('${agent.name}', '${agent.onLeave || ''}')" class="text-blue-600 text-sm hover:underline">
+                                ${agent.onLeave ? 'Edit Leave' : '+ Leave'}
+                            </button>
+                        `;
+                        list.appendChild(li);
+                    });
+                    
+                    this.openModal('detailModal');
+                } catch (err) {
+                    this.toast("Error loading team details", "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            // --- Leave Management ---
+
+            prepLeave(agentName, currentLeaveType) {
+                this.state.currentAgent = agentName;
+                document.getElementById('leaveTeam').value = this.state.currentTeam;
+                document.getElementById('leaveAgentDisplay').value = agentName;
+                document.getElementById('leaveAgentName').value = agentName;
+                document.getElementById('leaveDate').value = this.state.currentDate;
+                document.getElementById('leaveType').value = currentLeaveType || "Sick Leave";
+                document.getElementById('leaveNotes').value = "";
+                
+                this.openModal('leaveModal');
+            },
+
+            async submitLeave() {
+                this.showLoader(true);
+                const payload = {
+                    action: "addLeave",
+                    date: document.getElementById('leaveDate').value,
+                    team: document.getElementById('leaveTeam').value,
+                    name: document.getElementById('leaveAgentName').value,
+                    type: document.getElementById('leaveType').value,
+                    notes: document.getElementById('leaveNotes').value
+                };
+
+                try {
+                    const response = await fetch(CONFIG.SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Leave added successfully");
+                        this.closeModal('leaveModal');
+                        // Refresh details
+                        this.loadTeamDetails(this.state.currentTeam);
+                        // Refresh dashboard background
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Unknown error");
+                    }
+                } catch (err) {
+                    this.toast("Failed to add leave", "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            // --- Roster Edit (Admin) ---
+
+            openRosterEditModal() {
+                document.getElementById('rosterDate').value = this.state.currentDate;
+                this.populateRosterAgents(); // Reset dropdowns
+                this.openModal('rosterEditModal');
+            },
+
+            toggleShiftInput() {
+                const isOff = document.getElementById('rosterIsOffDay').checked;
+                const shiftInput = document.getElementById('rosterShift');
+                shiftInput.disabled = isOff;
+                if (isOff) shiftInput.value = "";
+                shiftInput.classList.toggle('bg-gray-100', isOff);
+            },
+
+            async populateRosterAgents() {
+                const team = document.getElementById('rosterTeam').value;
+                const agentSelect = document.getElementById('rosterAgent');
+                agentSelect.innerHTML = '<option value="">Select Agent</option>';
+                
+                if (!team) return;
+
+                // We need to fetch existing data for this team/date to populate names properly
+                // or just rely on the user knowing names? Better to fetch.
+                this.showLoader(true);
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=teamDetails&date=${this.state.currentDate}&team=${encodeURIComponent(team)}`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    
+                    data.agents.forEach(a => {
+                        const opt = document.createElement('option');
+                        opt.value = a.name;
+                        opt.textContent = a.name;
+                        agentSelect.appendChild(opt);
+                    });
+                } catch(e) { console.error(e); } finally { this.showLoader(false); }
+            },
+
+            async submitRosterUpdate() {
+                this.showLoader(true);
+                const payload = {
+                    action: "updateRoster",
+                    date: document.getElementById('rosterDate').value,
+                    team: document.getElementById('rosterTeam').value,
+                    name: document.getElementById('rosterAgent').value,
+                    isOffDay: document.getElementById('rosterIsOffDay').checked,
+                    shift: document.getElementById('rosterShift').value
+                };
+
+                try {
+                    const res = await fetch(CONFIG.SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    
+                    if (data.ok) {
+                        this.toast("Roster updated");
+                        this.closeModal('rosterEditModal');
+                        this.refreshData();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (err) {
+                    this.toast("Update failed", "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            // --- UI Helpers ---
+
+            openModal(id) {
+                document.getElementById(id).classList.remove('hidden');
+            },
+            closeModal(id) {
+                document.getElementById(id).classList.add('hidden');
+            },
+            showLoader(show) {
+                const el = document.getElementById('loaderOverlay');
+                if (show) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            },
+            toast(msg, type='success') {
+                const el = document.getElementById('toast');
+                const txt = document.getElementById('toastMessage');
+                txt.textContent = msg;
+                el.className = `fixed bottom-4 right-4 px-6 py-3 rounded shadow-lg transform transition-all duration-300 z-50 flex items-center gap-3 ${type === 'error' ? 'bg-red-600' : 'bg-slate-800'} text-white translate-y-0 opacity-100`;
+                
+                setTimeout(() => {
+                    el.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            }
+        };
+
+        // Boot
+        window.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
 </body>
 </html>
