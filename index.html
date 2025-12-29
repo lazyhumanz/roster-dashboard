@@ -1,8 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEx Roster Dashboard</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Utilities */
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        
+        /* Spinner Animation */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Transitions */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Scrollbar for agent list */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+    <!-- Loading Overlay -->
+    <div id="loaderOverlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
+        <div class="loader mb-4"></div>
+        <div id="loaderText" class="font-bold text-blue-600">Loading Data...</div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">FundedNext CEx Roster</h1>
+            </div>
+
+            <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                <span class="text-sm text-slate-500 font-medium px-2">Date:</span>
+                <input type="date" id="datePicker" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2">
+                <button onclick="app.refreshData()" class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition" title="Refresh">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+            </div>
+            
+            <div>
+                <button id="adminToggleBtn" onclick="app.toggleAdmin()" class="text-xs text-slate-400 hover:text-slate-600 underline">Admin Mode</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        
+        <!-- Admin Controls (Hidden by default) -->
+        <div id="adminPanel" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-xl fade-in">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="font-bold text-amber-800">⚠️ Admin Roster Update</h3>
+                <button onclick="app.toggleAdmin()" class="text-xs text-amber-700 underline">Close</button>
+            </div>
+            <p class="text-sm text-amber-700 mb-4">Use this to correct shift times or mark an off day incorrectly in the master data.</p>
+            <button onclick="app.openRosterEditModal()" class="bg-amber-600 text-white px-4 py-2 rounded text-sm hover:bg-amber-700 font-medium shadow-sm">Update Roster Entry</button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div id="teamGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Cards Injected Here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-20">
+            <div class="inline-block p-4 rounded-full bg-slate-100 mb-4">
+                <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            </div>
+            <p class="text-slate-500 text-lg font-medium">No roster data found for this date.</p>
+            <p class="text-slate-400 text-sm mt-1">Try a different date or use Admin Mode to add data.</p>
+        </div>
+    </main>
+
+    <!-- Modals -->
+
+    <!-- 1. Team Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('detailModal')"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full fade-in">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start justify-between mb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTeamTitle">Team Name</h3>
+                        <button onclick="app.closeModal('detailModal')" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div class="max-h-[60vh] overflow-y-auto custom-scroll">
+                        <ul id="agentList" class="divide-y divide-gray-200">
+                            <!-- Agent Rows -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="app.openLeaveModal()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">Apply Leave</button>
+                    <button type="button" onclick="app.closeModal('detailModal')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Leave Modal -->
+    <div id="leaveModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveModal')"></div>
+            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
+                <h3 class="text-xl font-bold mb-4">Apply Leave</h3>
+                <form id="leaveForm" onsubmit="event.preventDefault(); app.submitLeave();">
+                    <input type="hidden" id="leaveTeam">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+                        <input type="text" id="leaveAgentDisplay" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100 text-gray-800">
+                        <input type="hidden" id="leaveAgentName">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="leaveDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100 text-gray-800">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
+                        <select id="leaveType" class="w-full border border-gray-300 rounded p-2">
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Casual Leave">Casual Leave</option>
+                            <option value="Emergency">Emergency</option>
+                            <option value="Full Day">Full Day</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                        <textarea id="leaveNotes" rows="3" class="w-full border border-gray-300 rounded p-2"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="app.closeModal('leaveModal')" class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Roster Edit Modal (Admin) -->
+    <div id="rosterEditModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('rosterEditModal')"></div>
+            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
+                <h3 class="text-xl font-bold mb-4 text-amber-800">Update Roster Data</h3>
+                <p class="text-xs text-gray-500 mb-4">This updates the master Roster_Data table.</p>
+                <form id="rosterForm" onsubmit="event.preventDefault(); app.submitRosterUpdate();">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Team</label>
+                        <select id="rosterTeam" onchange="app.populateRosterAgents()" class="w-full border border-gray-300 rounded p-2 focus:ring-amber-500 focus:border-amber-500">
+                            <!-- Teams populated via JS -->
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+                        <select id="rosterAgent" class="w-full border border-gray-300 rounded p-2 focus:ring-amber-500 focus:border-amber-500">
+                            <option value="">Select Team First</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="rosterDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100 text-gray-800">
+                    </div>
+                    <div class="mb-4">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="rosterIsOffDay" onchange="app.toggleShiftInput()" class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 border-gray-300">
+                            <span class="text-sm font-medium">Is Off Day?</span>
+                        </label>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shift Time</label>
+                        <input type="text" id="rosterShift" placeholder="e.g. 9:00AM - 6:00PM" class="w-full border border-gray-300 rounded p-2 focus:ring-amber-500 focus:border-amber-500">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="app.closeModal('rosterEditModal')" class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 shadow-sm">Update Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <span id="toastMessage">Notification</span>
+    </div>
+
     <script>
         // ==========================================
         // CONFIGURATION
         // ==========================================
         const CONFIG = {
+            // PASTE YOUR WEB APP URL HERE
             SCRIPT_URL: "https://script.google.com/macros/s/AKfycbx59KU3Q7ariAEZdlVCahkHLJ6fRwaC-imwI9UI7Y0ULlaO1SIki_4zlsiVygdzE8HQ/exec",
             
             TEAMS: [
@@ -13,7 +222,7 @@
                 "R&D"
             ],
 
-            // AGENT MASTER LIST - Maps Teams to their specific Agents
+            // AGENT MASTER LIST - Specific agents provided by user
             AGENT_MASTER_LIST: {
                 "Email Support (Morning)": [
                     "Jerin Tasneem Prova (Jane Megan)", 
@@ -165,8 +374,9 @@
 
             init() {
                 // Set Date Picker
-                document.getElementById('datePicker').value = this.state.currentDate;
-                document.getElementById('datePicker').addEventListener('change', (e) => {
+                const datePicker = document.getElementById('datePicker');
+                datePicker.value = this.state.currentDate;
+                datePicker.addEventListener('change', (e) => {
                     this.state.currentDate = e.target.value;
                     this.refreshData();
                 });
@@ -200,7 +410,7 @@
             },
 
             async refreshData() {
-                this.showLoader(true);
+                this.showLoader(true, "Syncing roster...");
                 try {
                     const response = await fetch(`${CONFIG.SCRIPT_URL}?action=summary&date=${this.state.currentDate}`);
                     const data = await response.json();
@@ -210,6 +420,8 @@
                 } catch (err) {
                     console.error(err);
                     this.toast("Failed to load data", "error");
+                    document.getElementById('emptyState').classList.remove('hidden');
+                    document.getElementById('teamGrid').innerHTML = '';
                 } finally {
                     this.showLoader(false);
                 }
@@ -259,7 +471,7 @@
             },
 
             async loadTeamDetails(teamName) {
-                this.showLoader(true);
+                this.showLoader(true, "Loading agents...");
                 this.state.currentTeam = teamName;
                 
                 try {
@@ -285,8 +497,8 @@
                                 <p class="font-medium text-gray-900">${agent.name} ${statusBadge}</p>
                                 <p class="text-sm text-gray-500">${agent.shift || '--'}</p>
                             </div>
-                            <button onclick="app.prepLeave('${agent.name}', '${agent.onLeave || ''}')" class="text-blue-600 text-sm hover:underline">
-                                ${agent.onLeave ? 'Edit Leave' : '+ Leave'}
+                            <button onclick="app.prepLeave('${agent.name}', '${agent.onLeave || ''}')" class="text-blue-600 text-sm hover:underline font-medium">
+                                ${agent.onLeave ? 'Edit' : '+ Leave'}
                             </button>
                         `;
                         list.appendChild(li);
@@ -315,7 +527,7 @@
             },
 
             async submitLeave() {
-                this.showLoader(true);
+                this.showLoader(true, "Saving...");
                 const payload = {
                     action: "addLeave",
                     date: document.getElementById('leaveDate').value,
@@ -344,6 +556,7 @@
                     }
                 } catch (err) {
                     this.toast("Failed to add leave", "error");
+                    console.error(err);
                 } finally {
                     this.showLoader(false);
                 }
@@ -353,7 +566,13 @@
 
             openRosterEditModal() {
                 document.getElementById('rosterDate').value = this.state.currentDate;
-                this.populateRosterAgents(); // Reset dropdowns
+                document.getElementById('rosterTeam').value = "";
+                document.getElementById('rosterAgent').innerHTML = '<option value="">Select Team First</option>';
+                document.getElementById('rosterIsOffDay').checked = false;
+                document.getElementById('rosterShift').value = "";
+                document.getElementById('rosterShift').disabled = false;
+                document.getElementById('rosterShift').classList.remove('bg-gray-100');
+                
                 this.openModal('rosterEditModal');
             },
 
@@ -361,8 +580,12 @@
                 const isOff = document.getElementById('rosterIsOffDay').checked;
                 const shiftInput = document.getElementById('rosterShift');
                 shiftInput.disabled = isOff;
-                if (isOff) shiftInput.value = "";
-                shiftInput.classList.toggle('bg-gray-100', isOff);
+                if (isOff) {
+                    shiftInput.value = "";
+                    shiftInput.classList.add('bg-gray-100', 'text-gray-400');
+                } else {
+                    shiftInput.classList.remove('bg-gray-100', 'text-gray-400');
+                }
             },
 
             populateRosterAgents() {
@@ -373,7 +596,6 @@
                 if (!team) return;
 
                 // Use the hardcoded master list to populate dropdown immediately
-                // This allows adding data for the first time even if Sheet is empty
                 const agents = CONFIG.AGENT_MASTER_LIST[team];
 
                 if (agents) {
@@ -391,7 +613,7 @@
             },
 
             async submitRosterUpdate() {
-                this.showLoader(true);
+                this.showLoader(true, "Updating sheet...");
                 const payload = {
                     action: "updateRoster",
                     date: document.getElementById('rosterDate').value,
@@ -409,7 +631,7 @@
                     const data = await res.json();
                     
                     if (data.ok) {
-                        this.toast("Roster updated");
+                        this.toast("Roster updated successfully");
                         this.closeModal('rosterEditModal');
                         this.refreshData();
                     } else {
@@ -430,8 +652,10 @@
             closeModal(id) {
                 document.getElementById(id).classList.add('hidden');
             },
-            showLoader(show) {
+            showLoader(show, text="Loading...") {
                 const el = document.getElementById('loaderOverlay');
+                const txt = document.getElementById('loaderText');
+                txt.textContent = text;
                 if (show) el.classList.remove('hidden');
                 else el.classList.add('hidden');
             },
@@ -450,3 +674,5 @@
         // Boot
         window.addEventListener('DOMContentLoaded', () => app.init());
     </script>
+</body>
+</html>
