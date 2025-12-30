@@ -4,15 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CEx Roster Dashboard</title>
-    <!-- Tailwind CSS via CDN -->
+    <!-- Tailwind CSS via CDN (for development) -->
+    <!-- For production, consider using Tailwind CLI or PostCSS -->
+    <script>
+        // Suppress Tailwind CDN warning
+        if (typeof console !== 'undefined' && console.warn) {
+            const originalWarn = console.warn;
+            console.warn = function(...args) {
+                if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) {
+                    return; // Suppress Tailwind CDN warning
+                }
+                originalWarn.apply(console, args);
+            };
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Dark Theme */
+        body {
+            background: #0f172a;
+            color: #ffffff;
+        }
+        
         /* Custom Utilities */
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         
         /* Spinner Animation */
         .loader {
-            border: 4px solid #f3f3f3;
+            border: 4px solid #1e293b;
             border-top: 4px solid #3b82f6;
             border-radius: 50%;
             width: 30px; height: 30px;
@@ -26,39 +45,77 @@
         
         /* Scrollbar for agent list */
         .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scroll::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* Card border accent */
+        .card-border-ok { border-left: 4px solid #10b981; }
+        .card-border-shortage { border-left: 4px solid #ef4444; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+<body class="bg-slate-900 text-white font-sans min-h-screen">
 
     <!-- Loading Overlay -->
-    <div id="loaderOverlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
+    <div id="loaderOverlay" class="fixed inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center hidden">
         <div class="loader mb-4"></div>
-        <div id="loaderText" class="font-bold text-blue-600">Loading Data...</div>
+        <div id="loaderText" class="font-bold text-blue-400">Loading Data...</div>
     </div>
 
     <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-40">
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-2 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <div class="bg-green-500 text-white p-2 rounded-full">
+                    <span class="text-lg font-bold">R</span>
                 </div>
-                <h1 class="text-xl font-bold text-slate-800">FundedNext CEx Roster</h1>
+                <div>
+                    <h1 class="text-2xl font-bold text-white">CEx Roster Dashboard</h1>
+                    <p class="text-sm text-slate-400">Team availability & management</p>
+                </div>
             </div>
 
-            <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                <span class="text-sm text-slate-500 font-medium px-2">Date:</span>
-                <input type="date" id="datePicker" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2">
-                <button onclick="app.refreshData()" class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition" title="Refresh">
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <div class="flex items-center gap-2 bg-slate-700 px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-600 transition" onclick="app.toggleCalendar(event)">
+                        <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span id="dateDisplay" class="text-sm text-white font-medium"></span>
+                        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <!-- Calendar Dropdown -->
+                    <div id="calendarDropdown" class="hidden absolute top-full right-0 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 p-4 min-w-[280px]" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-between mb-4">
+                            <button onclick="event.stopPropagation(); app.changeCalendarMonth(-1)" class="p-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <h3 id="calendarMonthYear" class="text-white font-semibold"></h3>
+                            <button onclick="event.stopPropagation(); app.changeCalendarMonth(1)" class="p-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 mb-2">
+                            <div class="text-center text-xs text-slate-400 font-medium py-1">Sun</div>
+                            <div class="text-center text-xs text-slate-400 font-medium py-1">Mon</div>
+                            <div class="text-center text-xs text-slate-400 font-medium py-1">Tue</div>
+                            <div class="text-center text-xs text-slate-400 font-medium py-1">Wed</div>
+                            <div class="text-center text-xs text-slate-400 font-medium py-1">Thu</div>
+                            <div class="text-center text-xs text-slate-400 font-medium py-1">Fri</div>
+                            <div class="text-center text-xs text-slate-400 font-medium py-1">Sat</div>
+                        </div>
+                        <div id="calendarDays" class="grid grid-cols-7 gap-1"></div>
+                    </div>
+                </div>
+                <button onclick="app.refreshData()" class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="Refresh">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 </button>
+                <input type="date" id="datePicker" class="hidden">
             </div>
             
             <div>
-                <button id="adminToggleBtn" onclick="app.toggleAdmin()" class="text-xs text-slate-400 hover:text-slate-600 underline">Admin Mode</button>
+                <button id="adminToggleBtn" onclick="app.toggleAdmin()" class="px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 font-medium flex items-center gap-2 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <span id="adminToggleText">Admin Mode</span>
+                </button>
             </div>
         </div>
     </header>
@@ -66,27 +123,99 @@
     <main class="max-w-7xl mx-auto px-4 py-8">
         
         <!-- Admin Controls (Hidden by default) -->
-        <div id="adminPanel" class="hidden mb-6 bg-amber-50 border border-amber-200 p-4 rounded-xl fade-in">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="font-bold text-amber-800">⚠️ Admin Roster Update</h3>
-                <button onclick="app.toggleAdmin()" class="text-xs text-amber-700 underline">Close</button>
+        <div id="adminPanel" class="hidden mb-6 bg-slate-800 border border-slate-700 p-6 rounded-xl fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <h3 class="font-bold text-white text-lg">Admin Controls</h3>
+                </div>
+                <button onclick="app.toggleAdmin()" class="text-xs text-slate-400 hover:text-white underline">Close</button>
             </div>
-            <p class="text-sm text-amber-700 mb-4">Use this to correct shift times or mark an off day incorrectly in the master data.</p>
-            <button onclick="app.openRosterEditModal()" class="bg-amber-600 text-white px-4 py-2 rounded text-sm hover:bg-amber-700 font-medium shadow-sm">Update Roster Entry</button>
+            <p class="text-sm text-slate-400 mb-4">Manage roster, leaves, and agents</p>
+            <div class="flex gap-3 flex-wrap">
+                <button onclick="app.openRosterEditModal()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-amber-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Update Roster
+                </button>
+                <button onclick="app.openLeaveUpdateModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Add/Update Leave
+                </button>
+                <button onclick="app.openLeaveListModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    View All Leaves
+                </button>
+                <button onclick="app.openAgentManageModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                    Manage Agents
+                </button>
+                <button id="refreshFormulasBtn" onclick="app.refreshFormulas()" class="bg-slate-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Refresh Formulas
+                </button>
+            </div>
         </div>
 
-        <!-- Stats Grid -->
-        <div id="teamGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Summary Statistics -->
+        <div id="summaryStats" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-700 p-2 rounded-lg">
+                        <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-400">Total Available Agent</p>
+                        <p id="statTotalAgents" class="text-2xl font-bold text-white">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-green-500/20 p-2 rounded-lg">
+                        <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-400">Teams OK</p>
+                        <p id="statTeamsOK" class="text-2xl font-bold text-white">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-red-500/20 p-2 rounded-lg">
+                        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-400">Shortages</p>
+                        <p id="statShortages" class="text-2xl font-bold text-white">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-amber-500/20 p-2 rounded-lg">
+                        <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-400">Coverage</p>
+                        <p id="statCoverage" class="text-2xl font-bold text-white">0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Cards Grid -->
+        <div id="teamGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Cards Injected Here -->
         </div>
 
         <!-- Empty State -->
         <div id="emptyState" class="hidden text-center py-20">
-            <div class="inline-block p-4 rounded-full bg-slate-100 mb-4">
+            <div class="inline-block p-4 rounded-full bg-slate-800 mb-4">
                 <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
             </div>
-            <p class="text-slate-500 text-lg font-medium">No roster data found for this date.</p>
-            <p class="text-slate-400 text-sm mt-1">Try a different date or use Admin Mode to add data.</p>
+            <p class="text-slate-300 text-lg font-medium">No roster data found for this date.</p>
+            <p class="text-slate-500 text-sm mt-1">Try a different date or use Admin Mode to add data.</p>
         </div>
     </main>
 
@@ -95,25 +224,24 @@
     <!-- 1. Team Detail Modal -->
     <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('detailModal')"></div>
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('detailModal')"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full fade-in">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="inline-block align-bottom bg-slate-800 border border-slate-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full fade-in">
+                <div class="bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start justify-between mb-4">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTeamTitle">Team Name</h3>
-                        <button onclick="app.closeModal('detailModal')" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <h3 class="text-lg leading-6 font-medium text-white" id="modalTeamTitle">Team Name</h3>
+                        <button onclick="app.closeModal('detailModal')" class="text-slate-400 hover:text-white focus:outline-none">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
                     <div class="max-h-[60vh] overflow-y-auto custom-scroll">
-                        <ul id="agentList" class="divide-y divide-gray-200">
+                        <ul id="agentList" class="divide-y divide-slate-700">
                             <!-- Agent Rows -->
                         </ul>
                     </div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="app.openLeaveModal()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">Apply Leave</button>
-                    <button type="button" onclick="app.closeModal('detailModal')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
+                <div class="bg-slate-800 border-t border-slate-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="app.closeModal('detailModal')" class="w-full inline-flex justify-center rounded-md border border-slate-600 shadow-sm px-4 py-2 bg-slate-700 text-base font-medium text-white hover:bg-slate-600 sm:w-auto sm:text-sm">Close</button>
                 </div>
             </div>
         </div>
@@ -122,23 +250,23 @@
     <!-- 2. Leave Modal -->
     <div id="leaveModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveModal')"></div>
-            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
-                <h3 class="text-xl font-bold mb-4">Apply Leave</h3>
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
+                <h3 id="leaveModalTitle" class="text-xl font-bold mb-4 text-white">Apply Leave</h3>
                 <form id="leaveForm" onsubmit="event.preventDefault(); app.submitLeave();">
                     <input type="hidden" id="leaveTeam">
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
-                        <input type="text" id="leaveAgentDisplay" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100 text-gray-800">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Agent</label>
+                        <input type="text" id="leaveAgentDisplay" readonly class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
                         <input type="hidden" id="leaveAgentName">
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" id="leaveDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100 text-gray-800">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Date</label>
+                        <input type="date" id="leaveDate" readonly class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
-                        <select id="leaveType" class="w-full border border-gray-300 rounded p-2">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Leave Type</label>
+                        <select id="leaveType" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
                             <option value="Sick Leave">Sick Leave</option>
                             <option value="Casual Leave">Casual Leave</option>
                             <option value="Emergency">Emergency</option>
@@ -146,12 +274,17 @@
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                        <textarea id="leaveNotes" rows="3" class="w-full border border-gray-300 rounded p-2"></textarea>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Notes (Optional)</label>
+                        <textarea id="leaveNotes" rows="3" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white"></textarea>
                     </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="app.closeModal('leaveModal')" class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm">Submit</button>
+                    <div class="flex justify-between gap-2">
+                        <div>
+                            <button type="button" id="cancelLeaveBtn" onclick="app.cancelLeave()" class="hidden px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 shadow-sm">Cancel Leave</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="app.closeModal('leaveModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Close</button>
+                            <button type="submit" id="leaveSubmitBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm">Submit</button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -160,43 +293,296 @@
 
     <!-- 3. Roster Edit Modal (Admin) -->
     <div id="rosterEditModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="app.closeModal('rosterEditModal')"></div>
-            <div class="bg-white rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
-                <h3 class="text-xl font-bold mb-4 text-amber-800">Update Roster Data</h3>
-                <p class="text-xs text-gray-500 mb-4">This updates the master Roster_Data table.</p>
+        <div class="flex items-center justify-center min-h-screen px-4 py-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('rosterEditModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-2xl w-full p-6 relative z-10 fade-in max-h-[90vh] overflow-y-auto">
+                <h3 class="text-xl font-bold mb-4 text-amber-400">Update Roster Entry - Team Change</h3>
+                <p class="text-xs text-slate-400 mb-4">Change agent's team temporarily or permanently with shift updates.</p>
                 <form id="rosterForm" onsubmit="event.preventDefault(); app.submitRosterUpdate();">
+                    <!-- Current Team and Agent Selection -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Current Team</label>
+                            <select id="rosterTeam" onchange="app.populateRosterAgents()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                                <option value="">Select Team</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Agent</label>
+                            <select id="rosterAgent" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                                <option value="">Select Team First</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Change Type Selection -->
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Team</label>
-                        <select id="rosterTeam" onchange="app.populateRosterAgents()" class="w-full border border-gray-300 rounded p-2 focus:ring-amber-500 focus:border-amber-500">
-                            <!-- Teams populated via JS -->
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Change Type</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="changeType" value="temporary" onchange="app.toggleChangeType()" checked class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-600 bg-slate-700">
+                                <span class="text-sm font-medium text-slate-300">Temporary</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="changeType" value="permanent" onchange="app.toggleChangeType()" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-600 bg-slate-700">
+                                <span class="text-sm font-medium text-slate-300">Permanent</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Temporary Change Fields -->
+                    <div id="temporaryFields" class="mb-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-1">From Date</label>
+                                <input type="date" id="rosterFromDate" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-1">To Date</label>
+                                <input type="date" id="rosterToDate" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Assign to New Team</label>
+                            <select id="rosterNewTeam" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                                <option value="">Select New Team</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Permanent Change Fields -->
+                    <div id="permanentFields" class="mb-4 hidden space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Starting Date</label>
+                            <input type="date" id="rosterStartDate" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Assign to New Team (Optional - leave empty to keep same team)</label>
+                            <select id="rosterPermanentNewTeam" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                                <option value="">Keep Current Team</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Shift Time Selection (Block Format) -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Shift Time</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            <button type="button" onclick="app.selectShiftTime('7:15AM-4:15PM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">7:15AM-4:15PM</button>
+                            <button type="button" onclick="app.selectShiftTime('8:00AM-5:00PM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">8:00AM-5:00PM</button>
+                            <button type="button" onclick="app.selectShiftTime('8:30AM-5:30PM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">8:30AM-5:30PM</button>
+                            <button type="button" onclick="app.selectShiftTime('9:00AM-6:00PM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">9:00AM-6:00PM</button>
+                            <button type="button" onclick="app.selectShiftTime('1:15PM-9:45PM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">1:15PM-9:45PM</button>
+                            <button type="button" onclick="app.selectShiftTime('2:00PM-11:00PM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">2:00PM-11:00PM</button>
+                            <button type="button" onclick="app.selectShiftTime('6:00PM-11:00PM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">6:00PM-11:00PM</button>
+                            <button type="button" onclick="app.selectShiftTime('9:30PM-2:40AM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">9:30PM-2:40AM</button>
+                            <button type="button" onclick="app.selectShiftTime('10:30PM-7:30AM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">10:30PM-7:30AM</button>
+                            <button type="button" onclick="app.selectShiftTime('2:20AM-7:30AM', this)" class="px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition">2:20AM-7:30AM</button>
+                        </div>
+                        <input type="text" id="rosterShift" placeholder="Or enter custom shift time (e.g. 9:00AM-6:00PM)" class="w-full border border-slate-600 rounded p-2 mt-2 bg-slate-700 text-white placeholder-slate-500 focus:ring-amber-500 focus:border-amber-500">
+                    </div>
+
+                    <!-- Day Off Selection -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Day Off (Select 2 days per week)</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Day Off One</label>
+                                <select id="rosterDayOffOne" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                                    <option value="">Select Day</option>
+                                    <option value="Sunday">Sunday</option>
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
+                                    <option value="Saturday">Saturday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Day Off Two</label>
+                                <select id="rosterDayOffTwo" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500">
+                                    <option value="">Select Day</option>
+                                    <option value="Sunday">Sunday</option>
+                                    <option value="Monday">Monday</option>
+                                    <option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option>
+                                    <option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option>
+                                    <option value="Saturday">Saturday</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-4 border-t border-slate-700">
+                        <button type="button" onclick="app.closeModal('rosterEditModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Cancel</button>
+                        <button type="submit" id="rosterSubmitBtn" class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 shadow-sm">Update Roster</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Leave Update Modal (Admin) -->
+    <div id="leaveUpdateModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveUpdateModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
+                <h3 class="text-xl font-bold mb-4 text-teal-400">Add/Update Leave</h3>
+                <form id="leaveUpdateForm" onsubmit="event.preventDefault(); app.submitLeaveUpdate();">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Team</label>
+                        <select id="leaveUpdateTeam" onchange="app.populateLeaveUpdateAgents()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-teal-500 focus:border-teal-500">
+                            <option value="">Select Team</option>
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Agent</label>
-                        <select id="rosterAgent" class="w-full border border-gray-300 rounded p-2 focus:ring-amber-500 focus:border-amber-500">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Agent</label>
+                        <select id="leaveUpdateAgent" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-teal-500 focus:border-teal-500">
                             <option value="">Select Team First</option>
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" id="rosterDate" readonly class="w-full border border-gray-300 rounded p-2 bg-gray-100 text-gray-800">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Date</label>
+                        <input type="date" id="leaveUpdateDate" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-teal-500 focus:border-teal-500">
                     </div>
                     <div class="mb-4">
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" id="rosterIsOffDay" onchange="app.toggleShiftInput()" class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 border-gray-300">
-                            <span class="text-sm font-medium">Is Off Day?</span>
-                        </label>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Leave Type</label>
+                        <select id="leaveUpdateType" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Casual Leave">Casual Leave</option>
+                            <option value="Emergency">Emergency</option>
+                            <option value="Full Day">Full Day</option>
+                        </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Shift Time</label>
-                        <input type="text" id="rosterShift" placeholder="e.g. 9:00AM - 6:00PM" class="w-full border border-gray-300 rounded p-2 focus:ring-amber-500 focus:border-amber-500">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Notes (Optional)</label>
+                        <textarea id="leaveUpdateNotes" rows="3" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white"></textarea>
                     </div>
                     <div class="flex justify-end gap-2">
-                        <button type="button" onclick="app.closeModal('rosterEditModal')" class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 shadow-sm">Update Data</button>
+                        <button type="button" onclick="app.closeModal('leaveUpdateModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 shadow-sm">Save Leave</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Leave List Modal (Admin) -->
+    <div id="leaveListModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveListModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-3xl w-full p-6 relative z-10 fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-teal-400">View/Delete Leaves</h3>
+                    <button onclick="app.closeModal('leaveListModal')" class="text-slate-400 hover:text-white">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Filter by Date</label>
+                    <input type="date" id="leaveListDate" onchange="app.loadLeaveList()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
+                </div>
+                <div class="max-h-[60vh] overflow-y-auto custom-scroll">
+                    <table class="min-w-full divide-y divide-slate-700">
+                        <thead class="bg-slate-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase">Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase">Team</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase">Agent</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase">Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaveListBody" class="bg-slate-800 divide-y divide-slate-700">
+                            <tr>
+                                <td colspan="5" class="px-4 py-4 text-center text-slate-400">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Add/Remove Agent Modal (Admin) -->
+    <div id="agentManageModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('agentManageModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-2xl w-full p-6 relative z-10 fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-green-400">Add/Remove Agent</h3>
+                    <button onclick="app.closeModal('agentManageModal')" class="text-slate-400 hover:text-white">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                
+                <!-- Tabs for Add/Remove -->
+                <div class="mb-4 border-b border-slate-700">
+                    <div class="flex gap-4">
+                        <button onclick="app.switchAgentTab('add')" id="agentAddTab" class="px-4 py-2 font-medium text-sm border-b-2 border-green-500 text-green-400">Add Agent</button>
+                        <button onclick="app.switchAgentTab('remove')" id="agentRemoveTab" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-600">Remove Agent</button>
+                    </div>
+                </div>
+
+                <!-- Add Agent Form -->
+                <div id="addAgentForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Team</label>
+                        <select id="addAgentTeam" onchange="app.loadExistingAgents()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-green-500 focus:border-green-500">
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Agent Name</label>
+                        <input type="text" id="addAgentName" placeholder="Enter agent full name" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white placeholder-slate-500 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Default Shift Time</label>
+                        <input type="text" id="addAgentShift" placeholder="e.g. 9:00AM-6:00PM" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white placeholder-slate-500 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Select Weekend Days (Off Days)</label>
+                        <div class="grid grid-cols-7 gap-2">
+                            <button type="button" onclick="app.toggleWeekendDay('Sunday', this)" class="weekend-day-btn px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-green-600 hover:text-white transition" data-day="Sunday">Sun</button>
+                            <button type="button" onclick="app.toggleWeekendDay('Monday', this)" class="weekend-day-btn px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-green-600 hover:text-white transition" data-day="Monday">Mon</button>
+                            <button type="button" onclick="app.toggleWeekendDay('Tuesday', this)" class="weekend-day-btn px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-green-600 hover:text-white transition" data-day="Tuesday">Tue</button>
+                            <button type="button" onclick="app.toggleWeekendDay('Wednesday', this)" class="weekend-day-btn px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-green-600 hover:text-white transition" data-day="Wednesday">Wed</button>
+                            <button type="button" onclick="app.toggleWeekendDay('Thursday', this)" class="weekend-day-btn px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-green-600 hover:text-white transition" data-day="Thursday">Thu</button>
+                            <button type="button" onclick="app.toggleWeekendDay('Friday', this)" class="weekend-day-btn px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-green-600 hover:text-white transition" data-day="Friday">Fri</button>
+                            <button type="button" onclick="app.toggleWeekendDay('Saturday', this)" class="weekend-day-btn px-3 py-2 border border-slate-600 rounded text-sm bg-slate-700 text-slate-300 hover:bg-green-600 hover:text-white transition" data-day="Saturday">Sat</button>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Click on days to mark them as off days (weekends)</p>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-4 border-t border-slate-700">
+                        <button type="button" onclick="app.closeModal('agentManageModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Cancel</button>
+                        <button type="button" onclick="app.addAgent()" id="addAgentBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm">Add Agent</button>
+                    </div>
+                </div>
+
+                <!-- Remove Agent Form -->
+                <div id="removeAgentForm" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Team</label>
+                        <select id="removeAgentTeam" onchange="app.loadAgentsForRemoval()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-red-500 focus:border-red-500">
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Agent</label>
+                        <select id="removeAgentName" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-red-500 focus:border-red-500">
+                            <option value="">Select Team First</option>
+                        </select>
+                    </div>
+                    <div class="bg-red-500/20 border border-red-500/50 rounded p-3">
+                        <p class="text-sm text-red-400">⚠️ Warning: Removing an agent will delete their row from the roster sheet. This action cannot be undone.</p>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-4 border-t border-slate-700">
+                        <button type="button" onclick="app.closeModal('agentManageModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Cancel</button>
+                        <button type="button" onclick="app.removeAgent()" id="removeAgentBtn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 shadow-sm">Remove Agent</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -369,27 +755,185 @@
                 currentDate: new Date().toISOString().split('T')[0],
                 currentTeam: null,
                 currentAgent: null, // For leave modal
-                adminMode: false
+                adminMode: false,
+                isEditingLeave: false // Track if editing existing leave
             },
 
             init() {
                 // Set Date Picker
                 const datePicker = document.getElementById('datePicker');
                 datePicker.value = this.state.currentDate;
+                
+                // Update date display initially
+                this.updateDateDisplay();
+                
                 datePicker.addEventListener('change', (e) => {
                     this.state.currentDate = e.target.value;
+                    this.updateDateDisplay();
                     this.refreshData();
                 });
 
-                // Populate Admin Team Dropdown
-                const teamSelect = document.getElementById('rosterTeam');
-                CONFIG.TEAMS.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t;
-                    opt.textContent = t;
-                    teamSelect.appendChild(opt);
+                // Bind closeCalendarOnOutsideClick to app context
+                this.closeCalendarOnOutsideClick = this.closeCalendarOnOutsideClick.bind(this);
+
+                // Populate Admin Team Dropdowns
+                const teamSelects = ['rosterTeam', 'leaveUpdateTeam'];
+                teamSelects.forEach(selectId => {
+                    const select = document.getElementById(selectId);
+                    if (select) {
+                        CONFIG.TEAMS.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t;
+                            opt.textContent = t;
+                            select.appendChild(opt);
+                        });
+                    }
                 });
 
+                this.refreshData();
+            },
+
+            updateDateDisplay() {
+                // Parse date from YYYY-MM-DD format to avoid timezone issues
+                const dateParts = this.state.currentDate.split('-');
+                const year = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+                const day = parseInt(dateParts[2]);
+                const dateObj = new Date(year, month, day);
+                
+                const dateDisplay = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                const dateDisplayElement = document.getElementById('dateDisplay');
+                if (dateDisplayElement) {
+                    dateDisplayElement.textContent = dateDisplay;
+                }
+            },
+
+            toggleCalendar(e) {
+                if (e) {
+                    e.stopPropagation();
+                }
+                const calendar = document.getElementById('calendarDropdown');
+                if (calendar.classList.contains('hidden')) {
+                    calendar.classList.remove('hidden');
+                    this.renderCalendar();
+                    // Close calendar when clicking outside
+                    setTimeout(() => {
+                        document.addEventListener('click', this.closeCalendarOnOutsideClick);
+                    }, 100);
+                } else {
+                    calendar.classList.add('hidden');
+                    document.removeEventListener('click', this.closeCalendarOnOutsideClick);
+                }
+            },
+
+            closeCalendarOnOutsideClick(e) {
+                const calendar = document.getElementById('calendarDropdown');
+                if (!calendar) return;
+                
+                const dateButton = calendar.previousElementSibling;
+                const isClickInside = calendar.contains(e.target) || (dateButton && dateButton.contains(e.target));
+                
+                if (!isClickInside) {
+                    calendar.classList.add('hidden');
+                    document.removeEventListener('click', this.closeCalendarOnOutsideClick);
+                }
+            },
+
+            renderCalendar() {
+                // Parse date from YYYY-MM-DD format to avoid timezone issues
+                const dateParts = this.state.currentDate.split('-');
+                const year = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+                const day = parseInt(dateParts[2]);
+                const currentDate = new Date(year, month, day);
+                
+                // Update month/year header
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+                
+                // Get first day of month and number of days
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const calendarDays = document.getElementById('calendarDays');
+                calendarDays.innerHTML = '';
+                
+                // Add empty cells for days before month starts
+                for (let i = 0; i < firstDay; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'w-8 h-8';
+                    calendarDays.appendChild(emptyCell);
+                }
+                
+                // Add day cells
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayCell = document.createElement('button');
+                    dayCell.className = 'w-8 h-8 rounded text-sm transition hover:bg-slate-700';
+                    
+                    const cellDate = new Date(year, month, day);
+                    cellDate.setHours(0, 0, 0, 0);
+                    
+                    // Format date as YYYY-MM-DD to match state format
+                    const cellYear = cellDate.getFullYear();
+                    const cellMonth = String(cellDate.getMonth() + 1).padStart(2, '0');
+                    const cellDay = String(cellDate.getDate()).padStart(2, '0');
+                    const cellDateStr = `${cellYear}-${cellMonth}-${cellDay}`;
+                    
+                    const isToday = cellDate.getTime() === today.getTime();
+                    const isSelected = cellDateStr === this.state.currentDate;
+                    
+                    if (isSelected) {
+                        dayCell.className += ' bg-amber-600 text-white font-semibold';
+                    } else if (isToday) {
+                        dayCell.className += ' bg-slate-700 text-white border-2 border-amber-500';
+                    } else {
+                        dayCell.className += ' text-slate-300';
+                    }
+                    
+                    dayCell.textContent = day;
+                    dayCell.onclick = () => this.selectDate(year, month, day);
+                    calendarDays.appendChild(dayCell);
+                }
+            },
+
+            changeCalendarMonth(direction) {
+                // Parse date from YYYY-MM-DD format to avoid timezone issues
+                const dateParts = this.state.currentDate.split('-');
+                const year = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+                const day = parseInt(dateParts[2]);
+                const currentDate = new Date(year, month, day);
+                
+                currentDate.setMonth(currentDate.getMonth() + direction);
+                
+                // Format as YYYY-MM-DD manually
+                const yearStr = currentDate.getFullYear();
+                const monthStr = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(currentDate.getDate()).padStart(2, '0');
+                const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+                
+                this.state.currentDate = dateStr;
+                document.getElementById('datePicker').value = dateStr;
+                this.renderCalendar();
+            },
+
+            selectDate(year, month, day) {
+                // Create date in local timezone
+                const selectedDate = new Date(year, month, day);
+                // Format as YYYY-MM-DD manually to avoid timezone issues
+                const yearStr = selectedDate.getFullYear();
+                const monthStr = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(selectedDate.getDate()).padStart(2, '0');
+                const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+                
+                console.log("selectDate called:", { year, month, day, dateStr });
+                
+                this.state.currentDate = dateStr;
+                document.getElementById('datePicker').value = dateStr;
+                this.updateDateDisplay();
+                this.toggleCalendar();
                 this.refreshData();
             },
 
@@ -397,29 +941,71 @@
                 this.state.adminMode = !this.state.adminMode;
                 const panel = document.getElementById('adminPanel');
                 const btn = document.getElementById('adminToggleBtn');
+                const toggleText = document.getElementById('adminToggleText');
                 
                 if (this.state.adminMode) {
                     panel.classList.remove('hidden');
-                    btn.textContent = "Exit Admin";
-                    btn.classList.add('text-red-600');
+                    toggleText.textContent = "Exit Admin";
+                    btn.classList.remove('bg-slate-700');
+                    btn.classList.add('bg-red-600', 'hover:bg-red-700');
                 } else {
                     panel.classList.add('hidden');
-                    btn.textContent = "Admin Mode";
-                    btn.classList.remove('text-red-600');
+                    toggleText.textContent = "Admin Mode";
+                    btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                }
+            },
+
+            async refreshFormulas() {
+                const btn = document.getElementById('refreshFormulasBtn');
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.textContent = '⏳ Refreshing...';
+                
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=refreshFormulas`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    this.toast('✅ Formulas refreshed! Available counts for combined teams (CFD Night + VE) have been updated.', 'success');
+                    
+                    // Refresh the dashboard to show updated values
+                    await this.refreshData();
+                } catch (err) {
+                    console.error("Refresh formulas error:", err);
+                    this.toast(`❌ Failed to refresh formulas: ${err.message}`, 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.textContent = originalText;
                 }
             },
 
             async refreshData() {
                 this.showLoader(true, "Syncing roster...");
                 try {
-                    const response = await fetch(`${CONFIG.SCRIPT_URL}?action=summary&date=${this.state.currentDate}`);
+                    const url = `${CONFIG.SCRIPT_URL}?action=summary&date=${this.state.currentDate}`;
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
                     const data = await response.json();
                     
-                    if (data.error) throw new Error(data.error);
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
                     this.renderDashboard(data);
                 } catch (err) {
-                    console.error(err);
-                    this.toast("Failed to load data", "error");
+                    console.error("Refresh error:", err);
+                    this.toast(`Failed to load data: ${err.message}`, "error");
                     document.getElementById('emptyState').classList.remove('hidden');
                     document.getElementById('teamGrid').innerHTML = '';
                 } finally {
@@ -437,37 +1023,111 @@
                 }
                 document.getElementById('emptyState').classList.add('hidden');
 
+                // Calculate summary statistics
+                let totalAvailableAgents = 0;
+                let teamsOK = 0;
+                let teamsShortage = 0;
+                let totalRequired = 0;
+                let totalAvailable = 0;
+
+                data.teams.forEach(team => {
+                    totalAvailableAgents += team.available;
+                    totalAvailable += team.available;
+                    totalRequired += team.required;
+                    if (team.shortage) {
+                        teamsShortage++;
+                    } else {
+                        teamsOK++;
+                    }
+                });
+
+                const coverage = totalRequired > 0 ? Math.round((totalAvailable / totalRequired) * 100) : 0;
+
+                // Update summary statistics
+                document.getElementById('statTotalAgents').textContent = totalAvailableAgents;
+                document.getElementById('statTeamsOK').textContent = teamsOK;
+                document.getElementById('statShortages').textContent = teamsShortage;
+                document.getElementById('statCoverage').textContent = coverage + '%';
+
+                // Update date display
+                this.updateDateDisplay();
+
+                // Render team cards
                 data.teams.forEach(team => {
                     const isShortage = team.shortage;
                     const card = document.createElement('div');
-                    card.className = "bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition cursor-pointer border-l-4 " + (isShortage ? "border-red-500" : "border-green-500");
+                    card.className = "bg-slate-800 border border-slate-700 rounded-lg p-6 hover:border-slate-600 transition cursor-pointer " + 
+                                    (isShortage ? "card-border-shortage" : "card-border-ok");
+                    
+                    // Build shift-specific availability notes
+                    let shiftNotes = "";
+                    if (team.shiftAvailability && Object.keys(team.shiftAvailability).length > 0) {
+                        shiftNotes = '<div class="mt-4 pt-4 border-t border-slate-700 space-y-2">';
+                        // Sort shifts for consistent display
+                        const sortedShifts = Object.entries(team.shiftAvailability).sort((a, b) => {
+                            return a[0].localeCompare(b[0]);
+                        });
+                        sortedShifts.forEach(([shift, data]) => {
+                            const available = data.available !== undefined ? data.available : 0;
+                            const required = data.required !== undefined ? data.required : 0;
+                            if (available > 0 || required > 0) {
+                                const isShort = available < required;
+                                shiftNotes += `<div class="flex items-center justify-between text-sm">`;
+                                shiftNotes += `<div class="flex items-center gap-2">`;
+                                shiftNotes += `<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                                shiftNotes += `<span class="text-slate-300">${shift}</span>`;
+                                shiftNotes += `</div>`;
+                                shiftNotes += `<span class="font-semibold ${isShort ? 'text-red-400' : 'text-white'}">${available} / ${required}</span>`;
+                                shiftNotes += `</div>`;
+                            }
+                        });
+                        shiftNotes += '</div>';
+                    }
                     
                     card.innerHTML = `
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="font-bold text-gray-800 text-lg leading-tight">${team.team}</h3>
-                            <span class="text-xs font-semibold px-2 py-1 rounded ${isShortage ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
-                                ${isShortage ? 'Shortage' : 'OK'}
+                            <h3 class="font-bold text-white text-lg leading-tight">${team.team}</h3>
+                            <span class="text-xs font-semibold px-2 py-1 rounded flex items-center gap-1 ${isShortage ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}">
+                                ${isShortage ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Shortage' : '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> OK'}
                             </span>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-sm text-gray-500">Available</p>
-                                <p class="text-2xl font-bold text-gray-900">${team.available}</p>
+                        <div class="mb-4">
+                            <p class="text-3xl font-bold text-white mb-1">Available ${team.available}</p>
+                            <p class="text-sm text-slate-400">Total / Required <span class="text-white font-semibold">${team.total} / ${team.required}</span></p>
+                        </div>
+                        <div class="flex justify-between text-sm text-slate-400 mb-4">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span>Off: ${team.offDay}</span>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm text-gray-500">Total / Req</p>
-                                <p class="text-sm font-semibold text-gray-600">${team.total} <span class="text-gray-400">/ ${team.required}</span></p>
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                <span>Leave: ${team.onLeave}</span>
                             </div>
                         </div>
-                        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-                            <span>Off: ${team.offDay}</span>
-                            <span>Leave: ${team.onLeave}</span>
-                        </div>
+                        ${shiftNotes}
                     `;
                     
-                    card.onclick = () => this.loadTeamDetails(team.team);
+                    // Handle merged team click - show both teams
+                    if (team.team.includes(" / ")) {
+                        card.onclick = () => {
+                            this.loadTeamDetails(team.team);
+                        };
+                    } else {
+                        card.onclick = () => this.loadTeamDetails(team.team);
+                    }
                     grid.appendChild(card);
                 });
+            },
+
+            changeDate(days) {
+                const datePicker = document.getElementById('datePicker');
+                const currentDate = new Date(this.state.currentDate + 'T00:00:00');
+                currentDate.setDate(currentDate.getDate() + days);
+                this.state.currentDate = currentDate.toISOString().split('T')[0];
+                datePicker.value = this.state.currentDate;
+                this.updateDateDisplay();
+                this.refreshData();
             },
 
             async loadTeamDetails(teamName) {
@@ -477,36 +1137,84 @@
                 try {
                     const url = `${CONFIG.SCRIPT_URL}?action=teamDetails&date=${this.state.currentDate}&team=${encodeURIComponent(teamName)}`;
                     const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
                     const data = await response.json();
                     
-                    if (data.error) throw new Error(data.error);
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
                     
                     document.getElementById('modalTeamTitle').textContent = data.team;
                     const list = document.getElementById('agentList');
                     list.innerHTML = '';
                     
-                    data.agents.forEach(agent => {
-                        let statusBadge = '';
-                        if (agent.onLeave) statusBadge = '<span class="ml-2 px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-xs">Leave</span>';
-                        else if (agent.isOffDay) statusBadge = '<span class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">Off</span>';
-                        
-                        const li = document.createElement('li');
-                        li.className = "py-3 flex justify-between items-center";
-                        li.innerHTML = `
-                            <div>
-                                <p class="font-medium text-gray-900">${agent.name} ${statusBadge}</p>
-                                <p class="text-sm text-gray-500">${agent.shift || '--'}</p>
-                            </div>
-                            <button onclick="app.prepLeave('${agent.name}', '${agent.onLeave || ''}')" class="text-blue-600 text-sm hover:underline font-medium">
-                                ${agent.onLeave ? 'Edit' : '+ Leave'}
-                            </button>
-                        `;
-                        list.appendChild(li);
-                    });
+                    if (!data.agents || data.agents.length === 0) {
+                        list.innerHTML = '<li class="py-4 text-center text-slate-400">No agents found for this team on this date.</li>';
+                    } else {
+                        data.agents.forEach(agent => {
+                            // Escape quotes in agent name for onclick
+                            const safeName = agent.name.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                            const leaveType = agent.onLeave ? (agent.leaveType || '') : '';
+                            
+                            let statusBadge = '';
+                            if (agent.onLeave) {
+                                statusBadge = `<span class="ml-2 px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs">Leave (${agent.leaveType || 'N/A'})</span>`;
+                            } else if (agent.isOffDay) {
+                                statusBadge = '<span class="ml-2 px-2 py-0.5 rounded-full text-xs" style="background-color: #F6B26B; color: #7C2D12;">Off Day</span>';
+                            }
+                            
+                            if (agent.isTemporary) {
+                                statusBadge += `<span class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">Temporary</span>`;
+                            }
+                            
+                            const li = document.createElement('li');
+                            li.className = "py-3 flex justify-between items-center";
+                            
+                            // Build action buttons
+                            let actionButtons = '';
+                            if (agent.isTemporary) {
+                                actionButtons = `
+                                    <div class="flex gap-2">
+                                        <button onclick="app.returnTemporaryAgent('${safeName}')" class="px-3 py-1 bg-amber-600 text-white text-sm rounded hover:bg-amber-700 font-medium">
+                                            Return
+                                        </button>
+                                        <button onclick="app.prepLeave('${safeName}', '${leaveType}')" class="text-blue-400 text-sm hover:text-blue-300 hover:underline font-medium">
+                                            ${agent.onLeave ? 'Edit Leave' : '+ Leave'}
+                                        </button>
+                                    </div>
+                                `;
+                            } else {
+                                actionButtons = `
+                                    <button onclick="app.prepLeave('${safeName}', '${leaveType}')" class="text-blue-400 text-sm hover:text-blue-300 hover:underline font-medium">
+                                        ${agent.onLeave ? 'Edit Leave' : '+ Leave'}
+                                    </button>
+                                `;
+                            }
+                            
+                            // Style the shift text - use orange for Off Day
+                            const shiftDisplay = agent.isOffDay 
+                                ? `<span class="px-2 py-0.5 rounded text-sm font-medium" style="background-color: #F6B26B; color: #7C2D12;">Off Day</span>`
+                                : `<span class="text-sm text-slate-400">${agent.shift || '--'}</span>`;
+                            
+                            li.innerHTML = `
+                                <div>
+                                    <p class="font-medium text-white">${agent.name} ${statusBadge}</p>
+                                    <p class="mt-1">${shiftDisplay}</p>
+                                </div>
+                                ${actionButtons}
+                            `;
+                            list.appendChild(li);
+                        });
+                    }
                     
                     this.openModal('detailModal');
                 } catch (err) {
-                    this.toast("Error loading team details", "error");
+                    console.error("Team details error:", err);
+                    this.toast(`Error loading team details: ${err.message}`, "error");
                 } finally {
                     this.showLoader(false);
                 }
@@ -523,10 +1231,31 @@
                 document.getElementById('leaveType').value = currentLeaveType || "Sick Leave";
                 document.getElementById('leaveNotes').value = "";
                 
+                // Show/hide Cancel Leave button and update title based on whether leave exists
+                const cancelBtn = document.getElementById('cancelLeaveBtn');
+                const modalTitle = document.getElementById('leaveModalTitle');
+                if (currentLeaveType) {
+                    cancelBtn.classList.remove('hidden');
+                    modalTitle.textContent = "Edit Leave";
+                    this.state.isEditingLeave = true;
+                } else {
+                    cancelBtn.classList.add('hidden');
+                    modalTitle.textContent = "Apply Leave";
+                    this.state.isEditingLeave = false;
+                }
+                
                 this.openModal('leaveModal');
             },
 
             async submitLeave() {
+                // Disable and gray out the submit button
+                const submitBtn = document.getElementById('leaveSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                }
+                
                 this.showLoader(true, "Saving...");
                 const payload = {
                     action: "addLeave",
@@ -538,14 +1267,24 @@
                 };
 
                 try {
-                    const response = await fetch(CONFIG.SCRIPT_URL, {
-                        method: "POST",
-                        body: JSON.stringify(payload)
+                    // Use GET request with URL parameters to avoid CORS issues
+                    const params = new URLSearchParams();
+                    Object.keys(payload).forEach(key => {
+                        params.append(key, payload[key]);
                     });
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
                     const result = await response.json();
                     
                     if (result.ok) {
-                        this.toast("Leave added successfully");
+                        this.toast(result.updated ? "Leave updated successfully" : "Leave added successfully");
                         this.closeModal('leaveModal');
                         // Refresh details
                         this.loadTeamDetails(this.state.currentTeam);
@@ -555,8 +1294,98 @@
                         throw new Error(result.error || "Unknown error");
                     }
                 } catch (err) {
-                    this.toast("Failed to add leave", "error");
-                    console.error(err);
+                    console.error("Leave submission error:", err);
+                    this.toast(`Failed to add leave: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                    // Re-enable and restore button color
+                    const submitBtn = document.getElementById('leaveSubmitBtn');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    }
+                }
+            },
+
+            async returnTemporaryAgent(agentName) {
+                if (!confirm(`Are you sure you want to return ${agentName} to their original team? This will remove the temporary team change.`)) {
+                    return;
+                }
+
+                this.showLoader(true, "Returning agent...");
+
+                try {
+                    const params = new URLSearchParams();
+                    params.append("action", "returnTemporaryAgent");
+                    params.append("date", this.state.currentDate);
+                    params.append("team", this.state.currentTeam);
+                    params.append("name", agentName);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.ok) {
+                        this.toast("Agent returned to original team successfully");
+                        this.closeModal('detailModal');
+                        this.loadTeamDetails(this.state.currentTeam); // Refresh team details
+                        this.refreshData(); // Refresh dashboard
+                    } else {
+                        throw new Error(result.error || "Unknown error");
+                    }
+                } catch (err) {
+                    console.error("Return agent error:", err);
+                    this.toast(`Failed to return agent: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            async cancelLeave() {
+                if (!confirm(`Are you sure you want to cancel the leave for ${this.state.currentAgent} on ${this.state.currentDate}?`)) {
+                    return;
+                }
+                
+                this.showLoader(true, "Cancelling leave...");
+                
+                try {
+                    // Use GET request with URL parameters to avoid CORS issues
+                    const params = new URLSearchParams();
+                    params.append("action", "deleteLeave");
+                    params.append("date", this.state.currentDate);
+                    params.append("team", this.state.currentTeam);
+                    params.append("name", this.state.currentAgent);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Leave cancelled successfully");
+                        this.closeModal('leaveModal');
+                        // Refresh details
+                        this.loadTeamDetails(this.state.currentTeam);
+                        // Refresh dashboard background
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Unknown error");
+                    }
+                } catch (err) {
+                    console.error("Cancel leave error:", err);
+                    this.toast(`Failed to cancel leave: ${err.message}`, "error");
                 } finally {
                     this.showLoader(false);
                 }
@@ -565,40 +1394,108 @@
             // --- Roster Edit (Admin) ---
 
             openRosterEditModal() {
-                document.getElementById('rosterDate').value = this.state.currentDate;
+                // Reset all fields
                 document.getElementById('rosterTeam').value = "";
                 document.getElementById('rosterAgent').innerHTML = '<option value="">Select Team First</option>';
-                document.getElementById('rosterIsOffDay').checked = false;
                 document.getElementById('rosterShift').value = "";
-                document.getElementById('rosterShift').disabled = false;
-                document.getElementById('rosterShift').classList.remove('bg-gray-100');
+                document.getElementById('rosterFromDate').value = "";
+                document.getElementById('rosterToDate').value = "";
+                document.getElementById('rosterStartDate').value = "";
+                document.getElementById('rosterNewTeam').value = "";
+                document.getElementById('rosterPermanentNewTeam').value = "";
+                document.getElementById('rosterDayOffOne').value = "";
+                document.getElementById('rosterDayOffTwo').value = "";
+                
+                // Set default to temporary
+                document.querySelector('input[name="changeType"][value="temporary"]').checked = true;
+                this.toggleChangeType();
+                
+                // Populate new team dropdowns
+                const newTeamSelect = document.getElementById('rosterNewTeam');
+                const permanentNewTeamSelect = document.getElementById('rosterPermanentNewTeam');
+                
+                newTeamSelect.innerHTML = '<option value="">Select New Team</option>';
+                permanentNewTeamSelect.innerHTML = '<option value="">Keep Current Team</option>';
+                
+                CONFIG.TEAMS.forEach(t => {
+                    // For temporary changes
+                    const opt1 = document.createElement('option');
+                    opt1.value = t;
+                    opt1.textContent = t;
+                    newTeamSelect.appendChild(opt1);
+                    
+                    // For permanent changes
+                    const opt2 = document.createElement('option');
+                    opt2.value = t;
+                    opt2.textContent = t;
+                    permanentNewTeamSelect.appendChild(opt2);
+                });
                 
                 this.openModal('rosterEditModal');
             },
 
-            toggleShiftInput() {
-                const isOff = document.getElementById('rosterIsOffDay').checked;
-                const shiftInput = document.getElementById('rosterShift');
-                shiftInput.disabled = isOff;
-                if (isOff) {
-                    shiftInput.value = "";
-                    shiftInput.classList.add('bg-gray-100', 'text-gray-400');
+            toggleChangeType() {
+                const changeType = document.querySelector('input[name="changeType"]:checked').value;
+                const tempFields = document.getElementById('temporaryFields');
+                const permFields = document.getElementById('permanentFields');
+                
+                if (changeType === 'temporary') {
+                    tempFields.classList.remove('hidden');
+                    permFields.classList.add('hidden');
                 } else {
-                    shiftInput.classList.remove('bg-gray-100', 'text-gray-400');
+                    tempFields.classList.add('hidden');
+                    permFields.classList.remove('hidden');
                 }
             },
 
-            populateRosterAgents() {
+            selectShiftTime(shiftTime, buttonElement) {
+                document.getElementById('rosterShift').value = shiftTime;
+                // Visual feedback - highlight selected button
+                document.querySelectorAll('#rosterEditModal button[onclick*="selectShiftTime"]').forEach(btn => {
+                    btn.classList.remove('bg-amber-600', 'text-white', 'border-amber-500');
+                    btn.classList.add('border-slate-600', 'bg-slate-700', 'text-slate-300');
+                });
+                if (buttonElement) {
+                    buttonElement.classList.add('bg-amber-600', 'text-white', 'border-amber-500');
+                    buttonElement.classList.remove('border-slate-600', 'bg-slate-700', 'text-slate-300');
+                }
+            },
+
+            async populateRosterAgents() {
                 const team = document.getElementById('rosterTeam').value;
                 const agentSelect = document.getElementById('rosterAgent');
-                agentSelect.innerHTML = '<option value="">Select Agent</option>';
+                agentSelect.innerHTML = '<option value="">Loading...</option>';
                 
-                if (!team) return;
+                if (!team) {
+                    agentSelect.innerHTML = '<option value="">Select Team First</option>';
+                    return;
+                }
 
-                // Use the hardcoded master list to populate dropdown immediately
+                // Try to fetch from backend first
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getAgents&team=${encodeURIComponent(team)}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.agents && data.agents.length > 0) {
+                        agentSelect.innerHTML = '<option value="">Select Agent</option>';
+                        data.agents.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = name;
+                            agentSelect.appendChild(opt);
+                        });
+                        return;
+                    }
+                } catch (err) {
+                    console.log("Could not fetch agents from backend, using config list");
+                }
+
+                // Fallback to hardcoded master list
+                agentSelect.innerHTML = '<option value="">Select Agent</option>';
                 const agents = CONFIG.AGENT_MASTER_LIST[team];
 
-                if (agents) {
+                if (agents && agents.length > 0) {
                     agents.forEach(name => {
                         const opt = document.createElement('option');
                         opt.value = name;
@@ -607,40 +1504,594 @@
                     });
                 } else {
                     const opt = document.createElement('option');
-                    opt.textContent = "No agents defined in config";
+                    opt.textContent = "No agents found";
                     agentSelect.appendChild(opt);
                 }
             },
 
             async submitRosterUpdate() {
-                this.showLoader(true, "Updating sheet...");
+                const team = document.getElementById('rosterTeam').value;
+                const name = document.getElementById('rosterAgent').value;
+                const shift = document.getElementById('rosterShift').value;
+                const changeType = document.querySelector('input[name="changeType"]:checked').value;
+                const dayOffOne = document.getElementById('rosterDayOffOne').value;
+                const dayOffTwo = document.getElementById('rosterDayOffTwo').value;
+                
+                if (!team || !name) {
+                    this.toast("Please select both team and agent", "error");
+                    return;
+                }
+                
+                if (!shift) {
+                    this.toast("Please select or enter shift time", "error");
+                    return;
+                }
+                
+                // Validate temporary change fields
+                if (changeType === 'temporary') {
+                    const fromDate = document.getElementById('rosterFromDate').value;
+                    const toDate = document.getElementById('rosterToDate').value;
+                    const newTeam = document.getElementById('rosterNewTeam').value;
+                    
+                    if (!fromDate || !toDate) {
+                        this.toast("Please select both from and to dates for temporary change", "error");
+                        return;
+                    }
+                    
+                    if (new Date(fromDate) > new Date(toDate)) {
+                        this.toast("From date must be before to date", "error");
+                        return;
+                    }
+                    
+                    if (!newTeam) {
+                        this.toast("Please select a new team for temporary assignment", "error");
+                        return;
+                    }
+                } else {
+                    // Permanent change
+                    const startDate = document.getElementById('rosterStartDate').value;
+                    if (!startDate) {
+                        this.toast("Please select a starting date for permanent change", "error");
+                        return;
+                    }
+                    // newTeam is optional for permanent - can be empty to just update shift
+                }
+                
+                // Disable and gray out the submit button
+                const submitBtn = document.getElementById('rosterSubmitBtn');
+                const originalBg = submitBtn.classList.contains('bg-amber-600') ? 'bg-amber-600' : '';
+                const originalHover = submitBtn.classList.contains('hover:bg-amber-700') ? 'hover:bg-amber-700' : '';
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+                submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                
+                this.showLoader(true, "Updating roster...");
                 const payload = {
                     action: "updateRoster",
-                    date: document.getElementById('rosterDate').value,
-                    team: document.getElementById('rosterTeam').value,
-                    name: document.getElementById('rosterAgent').value,
-                    isOffDay: document.getElementById('rosterIsOffDay').checked,
-                    shift: document.getElementById('rosterShift').value
+                    team: team,
+                    name: name,
+                    shift: shift,
+                    changeType: changeType,
+                    dayOffOne: dayOffOne || "",
+                    dayOffTwo: dayOffTwo || ""
                 };
+                
+                // Add type-specific fields
+                if (changeType === 'temporary') {
+                    payload.fromDate = document.getElementById('rosterFromDate').value;
+                    payload.toDate = document.getElementById('rosterToDate').value;
+                    payload.newTeam = document.getElementById('rosterNewTeam').value;
+                } else {
+                    payload.startDate = document.getElementById('rosterStartDate').value;
+                    const permanentNewTeamElement = document.getElementById('rosterPermanentNewTeam');
+                    payload.newTeam = permanentNewTeamElement ? permanentNewTeamElement.value : "";
+                    console.log("Permanent change - newTeam element:", permanentNewTeamElement);
+                    console.log("Permanent change - newTeam value:", payload.newTeam);
+                    
+                    // IMPORTANT: Alert user if no team is selected for team change
+                    if (!payload.newTeam) {
+                        console.log("WARNING: No new team selected - only shift times will be updated!");
+                    }
+                }
+                
+                // Debug: Log the full payload before sending
+                console.log("=== Roster Update Payload ===");
+                console.log("changeType:", changeType);
+                console.log("team (current):", payload.team);
+                console.log("name:", payload.name);
+                console.log("newTeam:", payload.newTeam);
+                console.log("shift:", payload.shift);
+                console.log("Full payload:", JSON.stringify(payload));
+                
+                // Show clear message about what will happen
+                if (changeType === 'permanent' && payload.newTeam && payload.newTeam !== payload.team) {
+                    console.log("✅ TEAM CHANGE: Will move " + payload.name + " from '" + payload.team + "' to '" + payload.newTeam + "'");
+                } else if (changeType === 'permanent' && !payload.newTeam) {
+                    console.log("⚠️ NO TEAM CHANGE: Only shift times will be updated (no new team selected in dropdown)");
+                } else if (changeType === 'permanent' && payload.newTeam === payload.team) {
+                    console.log("⚠️ SAME TEAM SELECTED: Only shift times will be updated");
+                }
 
                 try {
-                    const res = await fetch(CONFIG.SCRIPT_URL, {
-                        method: "POST",
-                        body: JSON.stringify(payload)
+                    // Use GET request with URL parameters to avoid CORS issues
+                    const params = new URLSearchParams();
+                    Object.keys(payload).forEach(key => {
+                        params.append(key, payload[key]);
                     });
+                    
+                    console.log("URL params:", params.toString());
+                    
+                    const res = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    
                     const data = await res.json();
                     
                     if (data.ok) {
-                        this.toast("Roster updated successfully");
+                        this.toast(changeType === 'temporary' ? "Temporary team change applied successfully" : "Permanent team change applied successfully");
                         this.closeModal('rosterEditModal');
                         this.refreshData();
                     } else {
-                        throw new Error(data.error);
+                        throw new Error(data.error || "Update failed");
                     }
                 } catch (err) {
-                    this.toast("Update failed", "error");
+                    console.error("Roster update error:", err);
+                    this.toast(`Update failed: ${err.message}`, "error");
                 } finally {
                     this.showLoader(false);
+                    // Re-enable and restore button color
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        submitBtn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+                    }
+                }
+            },
+
+            // --- Leave Update (Admin) ---
+
+            openLeaveUpdateModal() {
+                document.getElementById('leaveUpdateDate').value = this.state.currentDate;
+                document.getElementById('leaveUpdateTeam').value = "";
+                document.getElementById('leaveUpdateAgent').innerHTML = '<option value="">Select Team First</option>';
+                document.getElementById('leaveUpdateType').value = "Sick Leave";
+                document.getElementById('leaveUpdateNotes').value = "";
+                this.openModal('leaveUpdateModal');
+            },
+
+            async populateLeaveUpdateAgents() {
+                const team = document.getElementById('leaveUpdateTeam').value;
+                const agentSelect = document.getElementById('leaveUpdateAgent');
+                agentSelect.innerHTML = '<option value="">Loading...</option>';
+                
+                if (!team) {
+                    agentSelect.innerHTML = '<option value="">Select Team First</option>';
+                    return;
+                }
+
+                // Try to fetch from backend first
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getAgents&team=${encodeURIComponent(team)}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.agents && data.agents.length > 0) {
+                        agentSelect.innerHTML = '<option value="">Select Agent</option>';
+                        data.agents.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = name;
+                            agentSelect.appendChild(opt);
+                        });
+                        return;
+                    }
+                } catch (err) {
+                    console.log("Could not fetch agents from backend, using config list");
+                }
+
+                // Fallback to hardcoded list
+                agentSelect.innerHTML = '<option value="">Select Agent</option>';
+                const agents = CONFIG.AGENT_MASTER_LIST[team];
+                if (agents && agents.length > 0) {
+                    agents.forEach(name => {
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.textContent = name;
+                        agentSelect.appendChild(opt);
+                    });
+                }
+            },
+
+            async submitLeaveUpdate() {
+                const team = document.getElementById('leaveUpdateTeam').value;
+                const name = document.getElementById('leaveUpdateAgent').value;
+                const date = document.getElementById('leaveUpdateDate').value;
+                
+                if (!team || !name || !date) {
+                    this.toast("Please fill in all required fields", "error");
+                    return;
+                }
+                
+                this.showLoader(true, "Saving leave...");
+                const payload = {
+                    action: "addLeave",
+                    date: date,
+                    team: team,
+                    name: name,
+                    type: document.getElementById('leaveUpdateType').value,
+                    notes: document.getElementById('leaveUpdateNotes').value
+                };
+
+                try {
+                    // Use GET request with URL parameters to avoid CORS issues
+                    const params = new URLSearchParams();
+                    Object.keys(payload).forEach(key => {
+                        params.append(key, payload[key]);
+                    });
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast(result.updated ? "Leave updated successfully" : "Leave added successfully");
+                        this.closeModal('leaveUpdateModal');
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Unknown error");
+                    }
+                } catch (err) {
+                    console.error("Leave update error:", err);
+                    this.toast(`Failed to save leave: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            // --- Leave List (Admin) ---
+
+            openLeaveListModal() {
+                const dateInput = document.getElementById('leaveListDate');
+                dateInput.value = this.state.currentDate;
+                this.loadLeaveList();
+                this.openModal('leaveListModal');
+            },
+
+            async loadLeaveList() {
+                const date = document.getElementById('leaveListDate').value || this.state.currentDate;
+                const tbody = document.getElementById('leaveListBody');
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-slate-400">Loading...</td></tr>';
+
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=listLeaves&date=${date}`;
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    tbody.innerHTML = '';
+                    
+                    if (!data.leaves || data.leaves.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-slate-400">No leaves found for this date.</td></tr>';
+                        return;
+                    }
+                    
+                    data.leaves.forEach(leave => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-700";
+                        tr.innerHTML = `
+                            <td class="px-4 py-3 text-sm text-white">${leave.date}</td>
+                            <td class="px-4 py-3 text-sm text-slate-300">${leave.team}</td>
+                            <td class="px-4 py-3 text-sm text-slate-300">${leave.name}</td>
+                            <td class="px-4 py-3 text-sm text-slate-300">${leave.type}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <button onclick="app.deleteLeave('${leave.date}', '${leave.team.replace(/'/g, "&#39;")}', '${leave.name.replace(/'/g, "&#39;")}')" 
+                                        class="text-red-400 hover:text-red-300 font-medium">Delete</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } catch (err) {
+                    console.error("Load leave list error:", err);
+                    tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-red-400">Error: ${err.message}</td></tr>`;
+                }
+            },
+
+            async deleteLeave(date, team, name) {
+                if (!confirm(`Are you sure you want to delete the leave for ${name} on ${date}?`)) {
+                    return;
+                }
+                
+                this.showLoader(true, "Deleting leave...");
+                
+                try {
+                    // Use GET request with URL parameters to avoid CORS issues
+                    const params = new URLSearchParams();
+                    params.append("action", "deleteLeave");
+                    params.append("date", date);
+                    params.append("team", team);
+                    params.append("name", name);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Leave deleted successfully");
+                        this.loadLeaveList();
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Unknown error");
+                    }
+                } catch (err) {
+                    console.error("Delete leave error:", err);
+                    this.toast(`Failed to delete leave: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            // --- Agent Management (Admin) ---
+
+            openAgentManageModal() {
+                // Populate team dropdowns
+                const addTeamSelect = document.getElementById('addAgentTeam');
+                const removeTeamSelect = document.getElementById('removeAgentTeam');
+                
+                addTeamSelect.innerHTML = '<option value="">Select Team</option>';
+                removeTeamSelect.innerHTML = '<option value="">Select Team</option>';
+                
+                CONFIG.TEAMS.forEach(t => {
+                    const opt1 = document.createElement('option');
+                    opt1.value = t;
+                    opt1.textContent = t;
+                    addTeamSelect.appendChild(opt1);
+                    
+                    const opt2 = document.createElement('option');
+                    opt2.value = t;
+                    opt2.textContent = t;
+                    removeTeamSelect.appendChild(opt2);
+                });
+                
+                // Reset forms
+                document.getElementById('addAgentName').value = "";
+                document.getElementById('addAgentShift').value = "";
+                document.getElementById('removeAgentName').innerHTML = '<option value="">Select Team First</option>';
+                
+                // Reset weekend day buttons
+                document.querySelectorAll('.weekend-day-btn').forEach(btn => {
+                    btn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
+                    btn.classList.add('border-slate-600', 'bg-slate-700', 'text-slate-300');
+                    btn.dataset.selected = 'false';
+                });
+                
+                // Switch to Add tab by default
+                this.switchAgentTab('add');
+                this.openModal('agentManageModal');
+            },
+
+            toggleWeekendDay(dayName, buttonElement) {
+                const isSelected = buttonElement.dataset.selected === 'true';
+                
+                if (isSelected) {
+                    // Deselect
+                    buttonElement.classList.remove('bg-green-600', 'text-white', 'border-green-500');
+                    buttonElement.classList.add('border-slate-600', 'bg-slate-700', 'text-slate-300');
+                    buttonElement.dataset.selected = 'false';
+                } else {
+                    // Select
+                    buttonElement.classList.add('bg-green-600', 'text-white', 'border-green-500');
+                    buttonElement.classList.remove('border-slate-600', 'bg-slate-700', 'text-slate-300');
+                    buttonElement.dataset.selected = 'true';
+                }
+            },
+
+            switchAgentTab(tab) {
+                const addForm = document.getElementById('addAgentForm');
+                const removeForm = document.getElementById('removeAgentForm');
+                const addTab = document.getElementById('agentAddTab');
+                const removeTab = document.getElementById('agentRemoveTab');
+                
+                if (tab === 'add') {
+                    addForm.classList.remove('hidden');
+                    removeForm.classList.add('hidden');
+                    addTab.classList.add('border-green-500', 'text-green-400');
+                    addTab.classList.remove('border-transparent', 'text-slate-400');
+                    removeTab.classList.remove('border-red-500', 'text-red-400');
+                    removeTab.classList.add('border-transparent', 'text-slate-400');
+                } else {
+                    addForm.classList.add('hidden');
+                    removeForm.classList.remove('hidden');
+                    removeTab.classList.add('border-red-500', 'text-red-400');
+                    removeTab.classList.remove('border-transparent', 'text-slate-400', 'hover:text-slate-300', 'hover:border-slate-600');
+                    addTab.classList.remove('border-green-500', 'text-green-400');
+                    addTab.classList.add('border-transparent', 'text-slate-400', 'hover:text-slate-300', 'hover:border-slate-600');
+                }
+            },
+
+            async loadExistingAgents() {
+                const team = document.getElementById('addAgentTeam').value;
+                // This is just for reference - we don't need to load existing agents for adding
+            },
+
+            async loadAgentsForRemoval() {
+                const team = document.getElementById('removeAgentTeam').value;
+                const agentSelect = document.getElementById('removeAgentName');
+                agentSelect.innerHTML = '<option value="">Loading...</option>';
+                
+                if (!team) {
+                    agentSelect.innerHTML = '<option value="">Select Team First</option>';
+                    return;
+                }
+
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getAgents&team=${encodeURIComponent(team)}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.agents && data.agents.length > 0) {
+                        agentSelect.innerHTML = '<option value="">Select Agent</option>';
+                        data.agents.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = name;
+                            agentSelect.appendChild(opt);
+                        });
+                        return;
+                    }
+                } catch (err) {
+                    console.log("Could not fetch agents from backend");
+                }
+
+                agentSelect.innerHTML = '<option value="">No agents found</option>';
+            },
+
+            async addAgent() {
+                const team = document.getElementById('addAgentTeam').value;
+                const name = document.getElementById('addAgentName').value.trim();
+                const shift = document.getElementById('addAgentShift').value.trim();
+                
+                if (!team || !name) {
+                    this.toast("Please select a team and enter agent name", "error");
+                    return;
+                }
+                
+                if (!shift) {
+                    this.toast("Please enter a default shift time", "error");
+                    return;
+                }
+                
+                // Get selected weekend days
+                const weekendDays = [];
+                document.querySelectorAll('.weekend-day-btn').forEach(btn => {
+                    if (btn.dataset.selected === 'true') {
+                        weekendDays.push(btn.dataset.day);
+                    }
+                });
+                
+                // Disable button
+                const submitBtn = document.getElementById('addAgentBtn');
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                
+                this.showLoader(true, "Adding agent...");
+                
+                try {
+                    const params = new URLSearchParams();
+                    params.append("action", "addAgent");
+                    params.append("team", team);
+                    params.append("name", name);
+                    params.append("shift", shift);
+                    params.append("weekendDays", weekendDays.join(','));
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Agent added successfully");
+                        this.closeModal('agentManageModal');
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Failed to add agent");
+                    }
+                } catch (err) {
+                    console.error("Add agent error:", err);
+                    this.toast(`Failed to add agent: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        submitBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    }
+                }
+            },
+
+            async removeAgent() {
+                const team = document.getElementById('removeAgentTeam').value;
+                const name = document.getElementById('removeAgentName').value;
+                
+                if (!team || !name) {
+                    this.toast("Please select both team and agent", "error");
+                    return;
+                }
+                
+                if (!confirm(`Are you sure you want to remove ${name} from ${team}? This will permanently delete their row from the roster sheet.`)) {
+                    return;
+                }
+                
+                // Disable button
+                const submitBtn = document.getElementById('removeAgentBtn');
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                
+                this.showLoader(true, "Removing agent...");
+                
+                try {
+                    const params = new URLSearchParams();
+                    params.append("action", "removeAgent");
+                    params.append("team", team);
+                    params.append("name", name);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Agent removed successfully");
+                        this.closeModal('agentManageModal');
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Failed to remove agent");
+                    }
+                } catch (err) {
+                    console.error("Remove agent error:", err);
+                    this.toast(`Failed to remove agent: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        submitBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                    }
                 }
             },
 
@@ -662,11 +2113,27 @@
             toast(msg, type='success') {
                 const el = document.getElementById('toast');
                 const txt = document.getElementById('toastMessage');
-                txt.textContent = msg;
-                el.className = `fixed bottom-4 right-4 px-6 py-3 rounded shadow-lg transform transition-all duration-300 z-50 flex items-center gap-3 ${type === 'error' ? 'bg-red-600' : 'bg-slate-800'} text-white translate-y-0 opacity-100`;
                 
-                setTimeout(() => {
+                // Clear any existing timeout
+                if (this.toastTimeout) {
+                    clearTimeout(this.toastTimeout);
+                }
+                
+                // Remove hidden class and reset position
+                el.classList.remove('hidden', 'translate-y-20', 'opacity-0');
+                
+                // Set message and styling
+                txt.textContent = msg;
+                const bgColor = type === 'error' ? 'bg-red-600' : 'bg-slate-800';
+                el.className = `fixed bottom-4 right-4 px-6 py-3 rounded shadow-lg transform transition-all duration-300 z-50 flex items-center gap-3 ${bgColor} text-white translate-y-0 opacity-100`;
+                
+                // Hide after 3 seconds
+                this.toastTimeout = setTimeout(() => {
                     el.classList.add('translate-y-20', 'opacity-0');
+                    // Hide completely after transition animation
+                    setTimeout(() => {
+                        el.classList.add('hidden');
+                    }, 300); // Wait for CSS transition to complete (duration-300 = 300ms)
                 }, 3000);
             }
         };
