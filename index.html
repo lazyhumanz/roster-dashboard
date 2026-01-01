@@ -133,10 +133,6 @@
             </div>
             <p class="text-sm text-slate-400 mb-4">Manage roster, leaves, and agents</p>
             <div class="flex gap-3 flex-wrap">
-                <button onclick="app.openRosterEditModal()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-amber-700 font-medium shadow-sm flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Update Roster
-                </button>
                 <button onclick="app.openLeaveUpdateModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 font-medium shadow-sm flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                     Add/Update Leave
@@ -145,11 +141,15 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     View All Leaves
                 </button>
-                <button onclick="app.openAgentManageModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 font-medium shadow-sm flex items-center gap-2">
+                <button onclick="app.showPasswordModal('updateRoster')" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-amber-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Update Roster
+                </button>
+                <button onclick="app.showPasswordModal('manageAgents')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 font-medium shadow-sm flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                     Manage Agents
                 </button>
-                <button id="refreshFormulasBtn" onclick="app.refreshFormulas()" class="bg-slate-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 font-medium shadow-sm flex items-center gap-2">
+                <button id="refreshFormulasBtn" onclick="app.showPasswordModal('refreshFormulas')" class="bg-slate-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 font-medium shadow-sm flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     Refresh Formulas
                 </button>
@@ -157,7 +157,7 @@
         </div>
 
         <!-- Summary Statistics -->
-        <div id="summaryStats" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div id="summaryStats" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
                 <div class="flex items-center gap-3">
                     <div class="bg-slate-700 p-2 rounded-lg">
@@ -199,6 +199,17 @@
                     <div>
                         <p class="text-sm text-slate-400">Coverage</p>
                         <p id="statCoverage" class="text-2xl font-bold text-white">0%</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-orange-500/20 p-2 rounded-lg">
+                        <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-400">Total Agent on Leave</p>
+                        <p id="statTotalOnLeave" class="text-2xl font-bold text-white">0</p>
                     </div>
                 </div>
             </div>
@@ -261,16 +272,43 @@
                         <input type="hidden" id="leaveAgentName">
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Date</label>
-                        <input type="date" id="leaveDate" readonly class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Select Dates (Multiple)</label>
+                        <div class="relative">
+                            <div id="leaveDateDisplay" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white cursor-pointer" onclick="app.toggleLeaveCalendar()">
+                                <span id="leaveDateText">Click to select dates</span>
+                                <span class="float-right">📅</span>
+                            </div>
+                            <div id="leaveCalendarContainer" class="hidden absolute z-20 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-4 w-80">
+                                <div class="flex justify-between items-center mb-4">
+                                    <button type="button" onclick="app.changeLeaveCalendarMonth(-1)" class="text-slate-300 hover:text-white">←</button>
+                                    <h4 id="leaveCalendarMonthYear" class="text-white font-semibold"></h4>
+                                    <button type="button" onclick="app.changeLeaveCalendarMonth(1)" class="text-slate-300 hover:text-white">→</button>
+                                </div>
+                                <div id="leaveCalendar" class="grid grid-cols-7 gap-1"></div>
+                                <div class="mt-4 pt-4 border-t border-slate-600">
+                                    <div class="text-sm text-slate-300 mb-2">Selected Dates:</div>
+                                    <div id="leaveSelectedDates" class="flex flex-wrap gap-2 min-h-[2rem]"></div>
+                                    <button type="button" onclick="app.clearLeaveDates()" class="mt-2 text-sm text-red-400 hover:text-red-300">Clear All</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="leaveDates" value="">
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-slate-300 mb-1">Leave Type</label>
-                        <select id="leaveType" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
+                        <select id="leaveType" onchange="app.handleLeaveTypeChange()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
                             <option value="Sick Leave">Sick Leave</option>
                             <option value="Casual Leave">Casual Leave</option>
                             <option value="Emergency">Emergency</option>
                             <option value="Full Day">Full Day</option>
+                            <option value="Half Day">Half Day</option>
+                        </select>
+                    </div>
+                    <div id="halfDayOptionContainer" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Half Day Option</label>
+                        <select id="halfDayOption" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
+                            <option value="1st Half">1st Half</option>
+                            <option value="2nd Half">2nd Half</option>
                         </select>
                     </div>
                     <div class="mb-4">
@@ -444,16 +482,43 @@
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Date</label>
-                        <input type="date" id="leaveUpdateDate" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-teal-500 focus:border-teal-500">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Select Dates (Multiple)</label>
+                        <div class="relative">
+                            <div id="leaveUpdateDateDisplay" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white cursor-pointer" onclick="app.toggleLeaveUpdateCalendar()">
+                                <span id="leaveUpdateDateText">Click to select dates</span>
+                                <span class="float-right">📅</span>
+                            </div>
+                            <div id="leaveUpdateCalendarContainer" class="hidden absolute z-20 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-4 w-80">
+                                <div class="flex justify-between items-center mb-4">
+                                    <button type="button" onclick="app.changeLeaveUpdateCalendarMonth(-1)" class="text-slate-300 hover:text-white">←</button>
+                                    <h4 id="leaveUpdateCalendarMonthYear" class="text-white font-semibold"></h4>
+                                    <button type="button" onclick="app.changeLeaveUpdateCalendarMonth(1)" class="text-slate-300 hover:text-white">→</button>
+                                </div>
+                                <div id="leaveUpdateCalendar" class="grid grid-cols-7 gap-1"></div>
+                                <div class="mt-4 pt-4 border-t border-slate-600">
+                                    <div class="text-sm text-slate-300 mb-2">Selected Dates:</div>
+                                    <div id="leaveUpdateSelectedDates" class="flex flex-wrap gap-2 min-h-[2rem]"></div>
+                                    <button type="button" onclick="app.clearLeaveUpdateDates()" class="mt-2 text-sm text-red-400 hover:text-red-300">Clear All</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="leaveUpdateDates" value="">
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-slate-300 mb-1">Leave Type</label>
-                        <select id="leaveUpdateType" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
+                        <select id="leaveUpdateType" onchange="app.handleLeaveUpdateTypeChange()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
                             <option value="Sick Leave">Sick Leave</option>
                             <option value="Casual Leave">Casual Leave</option>
                             <option value="Emergency">Emergency</option>
                             <option value="Full Day">Full Day</option>
+                            <option value="Half Day">Half Day</option>
+                        </select>
+                    </div>
+                    <div id="halfDayUpdateOptionContainer" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Half Day Option</label>
+                        <select id="halfDayUpdateOption" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white">
+                            <option value="1st Half">1st Half</option>
+                            <option value="2nd Half">2nd Half</option>
                         </select>
                     </div>
                     <div class="mb-4">
@@ -469,7 +534,33 @@
         </div>
     </div>
 
-    <!-- 5. Leave List Modal (Admin) -->
+    <!-- 5. Password Authentication Modal -->
+    <div id="passwordModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('passwordModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-md w-full p-6 relative z-10 fade-in">
+                <h3 class="text-xl font-bold mb-4 text-amber-400">Admin Authentication Required</h3>
+                <p class="text-sm text-slate-400 mb-4">Please enter your email and password to continue.</p>
+                <form id="passwordForm" onsubmit="event.preventDefault(); app.submitPassword();">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                        <input type="email" id="adminEmail" required class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500" placeholder="Enter your email">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
+                        <input type="password" id="adminPassword" required class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-amber-500 focus:border-amber-500" placeholder="Enter your password">
+                    </div>
+                    <div id="passwordError" class="mb-4 hidden text-red-400 text-sm"></div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="app.closeModal('passwordModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Cancel</button>
+                        <button type="submit" id="passwordSubmitBtn" class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 shadow-sm">Authenticate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Leave List Modal (Admin) -->
     <div id="leaveListModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveListModal')"></div>
@@ -756,7 +847,10 @@
                 currentTeam: null,
                 currentAgent: null, // For leave modal
                 adminMode: false,
-                isEditingLeave: false // Track if editing existing leave
+                isEditingLeave: false, // Track if editing existing leave
+                adminEmail: null, // Store authenticated admin email
+                adminPassword: null, // Store authenticated admin password
+                pendingAction: null // Store action to perform after authentication
             },
 
             init() {
@@ -775,6 +869,10 @@
 
                 // Bind closeCalendarOnOutsideClick to app context
                 this.closeCalendarOnOutsideClick = this.closeCalendarOnOutsideClick.bind(this);
+                // Bind closeLeaveCalendarOnOutsideClick to app context
+                this.closeLeaveCalendarOnOutsideClick = this.closeLeaveCalendarOnOutsideClick.bind(this);
+                // Bind closeLeaveUpdateCalendarOnOutsideClick to app context
+                this.closeLeaveUpdateCalendarOnOutsideClick = this.closeLeaveUpdateCalendarOnOutsideClick.bind(this);
 
                 // Populate Admin Team Dropdowns
                 const teamSelects = ['rosterTeam', 'leaveUpdateTeam'];
@@ -937,6 +1035,440 @@
                 this.refreshData();
             },
 
+            // --- Leave Multi-Date Calendar Functions ---
+            
+            toggleLeaveCalendar() {
+                const calendar = document.getElementById('leaveCalendarContainer');
+                if (calendar.classList.contains('hidden')) {
+                    calendar.classList.remove('hidden');
+                    this.renderLeaveCalendar();
+                    // Close calendar when clicking outside
+                    setTimeout(() => {
+                        document.addEventListener('click', this.closeLeaveCalendarOnOutsideClick);
+                    }, 100);
+                } else {
+                    calendar.classList.add('hidden');
+                    document.removeEventListener('click', this.closeLeaveCalendarOnOutsideClick);
+                }
+            },
+
+            closeLeaveCalendarOnOutsideClick(e) {
+                const calendar = document.getElementById('leaveCalendarContainer');
+                if (!calendar) return;
+                
+                const dateDisplay = document.getElementById('leaveDateDisplay');
+                const isClickInside = calendar.contains(e.target) || (dateDisplay && dateDisplay.contains(e.target));
+                
+                if (!isClickInside) {
+                    calendar.classList.add('hidden');
+                    document.removeEventListener('click', this.closeLeaveCalendarOnOutsideClick);
+                }
+            },
+
+            renderLeaveCalendar() {
+                // Initialize selected dates if not exists
+                if (!this.state.selectedLeaveDates) {
+                    this.state.selectedLeaveDates = [];
+                }
+                
+                // Use current date or first selected date as base
+                let baseDate;
+                if (this.state.selectedLeaveDates.length > 0) {
+                    const dateParts = this.state.selectedLeaveDates[0].split('-');
+                    baseDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                } else {
+                    const dateParts = this.state.currentDate.split('-');
+                    baseDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                }
+                
+                // Store current calendar month/year in state
+                if (!this.state.leaveCalendarMonth) {
+                    this.state.leaveCalendarMonth = baseDate.getMonth();
+                    this.state.leaveCalendarYear = baseDate.getFullYear();
+                }
+                
+                const year = this.state.leaveCalendarYear;
+                const month = this.state.leaveCalendarMonth;
+                
+                // Update month/year header
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                document.getElementById('leaveCalendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+                
+                // Get first day of month and number of days
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const calendar = document.getElementById('leaveCalendar');
+                calendar.innerHTML = '';
+                
+                // Add day headers
+                const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                dayHeaders.forEach(day => {
+                    const header = document.createElement('div');
+                    header.className = 'text-center text-xs font-semibold text-slate-400 py-1';
+                    header.textContent = day;
+                    calendar.appendChild(header);
+                });
+                
+                // Add empty cells for days before month starts
+                for (let i = 0; i < firstDay; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'w-8 h-8';
+                    calendar.appendChild(emptyCell);
+                }
+                
+                // Add day cells
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayCell = document.createElement('button');
+                    dayCell.type = 'button';
+                    dayCell.className = 'w-8 h-8 rounded text-sm transition hover:bg-slate-700';
+                    
+                    const cellDate = new Date(year, month, day);
+                    cellDate.setHours(0, 0, 0, 0);
+                    
+                    // Format date as YYYY-MM-DD
+                    const cellYear = cellDate.getFullYear();
+                    const cellMonth = String(cellDate.getMonth() + 1).padStart(2, '0');
+                    const cellDay = String(cellDate.getDate()).padStart(2, '0');
+                    const cellDateStr = `${cellYear}-${cellMonth}-${cellDay}`;
+                    
+                    const isToday = cellDate.getTime() === today.getTime();
+                    const isSelected = this.state.selectedLeaveDates.includes(cellDateStr);
+                    
+                    if (isSelected) {
+                        dayCell.className += ' bg-amber-600 text-white font-semibold';
+                    } else if (isToday) {
+                        dayCell.className += ' bg-slate-700 text-white border-2 border-amber-500';
+                    } else {
+                        dayCell.className += ' text-slate-300';
+                    }
+                    
+                    dayCell.textContent = day;
+                    dayCell.onclick = () => this.selectLeaveDate(year, month, day);
+                    calendar.appendChild(dayCell);
+                }
+                
+                this.updateLeaveDateDisplay();
+            },
+
+            changeLeaveCalendarMonth(direction) {
+                if (!this.state.leaveCalendarMonth) {
+                    const dateParts = this.state.currentDate.split('-');
+                    this.state.leaveCalendarMonth = parseInt(dateParts[1]) - 1;
+                    this.state.leaveCalendarYear = parseInt(dateParts[0]);
+                }
+                
+                this.state.leaveCalendarMonth += direction;
+                
+                // Handle year rollover
+                if (this.state.leaveCalendarMonth < 0) {
+                    this.state.leaveCalendarMonth = 11;
+                    this.state.leaveCalendarYear--;
+                } else if (this.state.leaveCalendarMonth > 11) {
+                    this.state.leaveCalendarMonth = 0;
+                    this.state.leaveCalendarYear++;
+                }
+                
+                this.renderLeaveCalendar();
+            },
+
+            selectLeaveDate(year, month, day) {
+                // Create date in local timezone
+                const selectedDate = new Date(year, month, day);
+                // Format as YYYY-MM-DD manually to avoid timezone issues
+                const yearStr = selectedDate.getFullYear();
+                const monthStr = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(selectedDate.getDate()).padStart(2, '0');
+                const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+                
+                // Initialize if not exists
+                if (!this.state.selectedLeaveDates) {
+                    this.state.selectedLeaveDates = [];
+                }
+                
+                // Toggle selection
+                const index = this.state.selectedLeaveDates.indexOf(dateStr);
+                if (index > -1) {
+                    // Remove if already selected
+                    this.state.selectedLeaveDates.splice(index, 1);
+                } else {
+                    // Add if not selected
+                    this.state.selectedLeaveDates.push(dateStr);
+                }
+                
+                // Sort dates
+                this.state.selectedLeaveDates.sort();
+                
+                this.renderLeaveCalendar();
+            },
+
+            clearLeaveDates() {
+                this.state.selectedLeaveDates = [];
+                this.renderLeaveCalendar();
+            },
+
+            updateLeaveDateDisplay() {
+                const selectedDates = this.state.selectedLeaveDates || [];
+                const dateText = document.getElementById('leaveDateText');
+                const selectedDatesContainer = document.getElementById('leaveSelectedDates');
+                const hiddenInput = document.getElementById('leaveDates');
+                
+                if (selectedDates.length === 0) {
+                    dateText.textContent = 'Click to select dates';
+                    dateText.className = 'text-slate-400';
+                } else {
+                    dateText.textContent = `${selectedDates.length} date(s) selected`;
+                    dateText.className = 'text-white';
+                }
+                
+                // Update hidden input with comma-separated dates
+                hiddenInput.value = selectedDates.join(',');
+                
+                // Display selected dates as chips
+                selectedDatesContainer.innerHTML = '';
+                selectedDates.forEach(dateStr => {
+                    const dateParts = dateStr.split('-');
+                    const dateObj = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    
+                    const chip = document.createElement('div');
+                    chip.className = 'inline-flex items-center gap-1 px-2 py-1 bg-amber-600 text-white text-xs rounded';
+                    chip.innerHTML = `
+                        <span>${formattedDate}</span>
+                        <button type="button" onclick="app.removeLeaveDate('${dateStr}')" class="hover:text-red-200">×</button>
+                    `;
+                    selectedDatesContainer.appendChild(chip);
+                });
+            },
+
+            removeLeaveDate(dateStr) {
+                if (!this.state.selectedLeaveDates) return;
+                const index = this.state.selectedLeaveDates.indexOf(dateStr);
+                if (index > -1) {
+                    this.state.selectedLeaveDates.splice(index, 1);
+                    this.renderLeaveCalendar();
+                }
+            },
+
+            // --- Leave Update Multi-Date Calendar Functions ---
+            
+            toggleLeaveUpdateCalendar() {
+                const calendar = document.getElementById('leaveUpdateCalendarContainer');
+                if (calendar.classList.contains('hidden')) {
+                    calendar.classList.remove('hidden');
+                    this.renderLeaveUpdateCalendar();
+                    // Close calendar when clicking outside
+                    setTimeout(() => {
+                        document.addEventListener('click', this.closeLeaveUpdateCalendarOnOutsideClick);
+                    }, 100);
+                } else {
+                    calendar.classList.add('hidden');
+                    document.removeEventListener('click', this.closeLeaveUpdateCalendarOnOutsideClick);
+                }
+            },
+
+            closeLeaveUpdateCalendarOnOutsideClick(e) {
+                const calendar = document.getElementById('leaveUpdateCalendarContainer');
+                if (!calendar) return;
+                
+                const dateDisplay = document.getElementById('leaveUpdateDateDisplay');
+                const isClickInside = calendar.contains(e.target) || (dateDisplay && dateDisplay.contains(e.target));
+                
+                if (!isClickInside) {
+                    calendar.classList.add('hidden');
+                    document.removeEventListener('click', this.closeLeaveUpdateCalendarOnOutsideClick);
+                }
+            },
+
+            renderLeaveUpdateCalendar() {
+                // Initialize selected dates if not exists
+                if (!this.state.selectedLeaveUpdateDates) {
+                    this.state.selectedLeaveUpdateDates = [];
+                }
+                
+                // Use current date or first selected date as base
+                let baseDate;
+                if (this.state.selectedLeaveUpdateDates.length > 0) {
+                    const dateParts = this.state.selectedLeaveUpdateDates[0].split('-');
+                    baseDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                } else {
+                    const dateParts = this.state.currentDate.split('-');
+                    baseDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                }
+                
+                // Store current calendar month/year in state
+                if (!this.state.leaveUpdateCalendarMonth) {
+                    this.state.leaveUpdateCalendarMonth = baseDate.getMonth();
+                    this.state.leaveUpdateCalendarYear = baseDate.getFullYear();
+                }
+                
+                const year = this.state.leaveUpdateCalendarYear;
+                const month = this.state.leaveUpdateCalendarMonth;
+                
+                // Update month/year header
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                document.getElementById('leaveUpdateCalendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+                
+                // Get first day of month and number of days
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const calendar = document.getElementById('leaveUpdateCalendar');
+                calendar.innerHTML = '';
+                
+                // Add day headers
+                const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                dayHeaders.forEach(day => {
+                    const header = document.createElement('div');
+                    header.className = 'text-center text-xs font-semibold text-slate-400 py-1';
+                    header.textContent = day;
+                    calendar.appendChild(header);
+                });
+                
+                // Add empty cells for days before month starts
+                for (let i = 0; i < firstDay; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'w-8 h-8';
+                    calendar.appendChild(emptyCell);
+                }
+                
+                // Add day cells
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayCell = document.createElement('button');
+                    dayCell.type = 'button';
+                    dayCell.className = 'w-8 h-8 rounded text-sm transition hover:bg-slate-700';
+                    
+                    const cellDate = new Date(year, month, day);
+                    cellDate.setHours(0, 0, 0, 0);
+                    
+                    // Format date as YYYY-MM-DD
+                    const cellYear = cellDate.getFullYear();
+                    const cellMonth = String(cellDate.getMonth() + 1).padStart(2, '0');
+                    const cellDay = String(cellDate.getDate()).padStart(2, '0');
+                    const cellDateStr = `${cellYear}-${cellMonth}-${cellDay}`;
+                    
+                    const isToday = cellDate.getTime() === today.getTime();
+                    const isSelected = this.state.selectedLeaveUpdateDates.includes(cellDateStr);
+                    
+                    if (isSelected) {
+                        dayCell.className += ' bg-amber-600 text-white font-semibold';
+                    } else if (isToday) {
+                        dayCell.className += ' bg-slate-700 text-white border-2 border-amber-500';
+                    } else {
+                        dayCell.className += ' text-slate-300';
+                    }
+                    
+                    dayCell.textContent = day;
+                    dayCell.onclick = () => this.selectLeaveUpdateDate(year, month, day);
+                    calendar.appendChild(dayCell);
+                }
+                
+                this.updateLeaveUpdateDateDisplay();
+            },
+
+            changeLeaveUpdateCalendarMonth(direction) {
+                if (!this.state.leaveUpdateCalendarMonth) {
+                    const dateParts = this.state.currentDate.split('-');
+                    this.state.leaveUpdateCalendarMonth = parseInt(dateParts[1]) - 1;
+                    this.state.leaveUpdateCalendarYear = parseInt(dateParts[0]);
+                }
+                
+                this.state.leaveUpdateCalendarMonth += direction;
+                
+                // Handle year rollover
+                if (this.state.leaveUpdateCalendarMonth < 0) {
+                    this.state.leaveUpdateCalendarMonth = 11;
+                    this.state.leaveUpdateCalendarYear--;
+                } else if (this.state.leaveUpdateCalendarMonth > 11) {
+                    this.state.leaveUpdateCalendarMonth = 0;
+                    this.state.leaveUpdateCalendarYear++;
+                }
+                
+                this.renderLeaveUpdateCalendar();
+            },
+
+            selectLeaveUpdateDate(year, month, day) {
+                // Create date in local timezone
+                const selectedDate = new Date(year, month, day);
+                // Format as YYYY-MM-DD manually to avoid timezone issues
+                const yearStr = selectedDate.getFullYear();
+                const monthStr = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(selectedDate.getDate()).padStart(2, '0');
+                const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+                
+                // Initialize if not exists
+                if (!this.state.selectedLeaveUpdateDates) {
+                    this.state.selectedLeaveUpdateDates = [];
+                }
+                
+                // Toggle selection
+                const index = this.state.selectedLeaveUpdateDates.indexOf(dateStr);
+                if (index > -1) {
+                    // Remove if already selected
+                    this.state.selectedLeaveUpdateDates.splice(index, 1);
+                } else {
+                    // Add if not selected
+                    this.state.selectedLeaveUpdateDates.push(dateStr);
+                }
+                
+                // Sort dates
+                this.state.selectedLeaveUpdateDates.sort();
+                
+                this.renderLeaveUpdateCalendar();
+            },
+
+            clearLeaveUpdateDates() {
+                this.state.selectedLeaveUpdateDates = [];
+                this.renderLeaveUpdateCalendar();
+            },
+
+            updateLeaveUpdateDateDisplay() {
+                const selectedDates = this.state.selectedLeaveUpdateDates || [];
+                const dateText = document.getElementById('leaveUpdateDateText');
+                const selectedDatesContainer = document.getElementById('leaveUpdateSelectedDates');
+                const hiddenInput = document.getElementById('leaveUpdateDates');
+                
+                if (selectedDates.length === 0) {
+                    dateText.textContent = 'Click to select dates';
+                    dateText.className = 'text-slate-400';
+                } else {
+                    dateText.textContent = `${selectedDates.length} date(s) selected`;
+                    dateText.className = 'text-white';
+                }
+                
+                // Update hidden input with comma-separated dates
+                hiddenInput.value = selectedDates.join(',');
+                
+                // Display selected dates as chips
+                selectedDatesContainer.innerHTML = '';
+                selectedDates.forEach(dateStr => {
+                    const dateParts = dateStr.split('-');
+                    const dateObj = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    
+                    const chip = document.createElement('div');
+                    chip.className = 'inline-flex items-center gap-1 px-2 py-1 bg-amber-600 text-white text-xs rounded';
+                    chip.innerHTML = `
+                        <span>${formattedDate}</span>
+                        <button type="button" onclick="app.removeLeaveUpdateDate('${dateStr}')" class="hover:text-red-200">×</button>
+                    `;
+                    selectedDatesContainer.appendChild(chip);
+                });
+            },
+
+            removeLeaveUpdateDate(dateStr) {
+                if (!this.state.selectedLeaveUpdateDates) return;
+                const index = this.state.selectedLeaveUpdateDates.indexOf(dateStr);
+                if (index > -1) {
+                    this.state.selectedLeaveUpdateDates.splice(index, 1);
+                    this.renderLeaveUpdateCalendar();
+                }
+            },
+
             toggleAdmin() {
                 this.state.adminMode = !this.state.adminMode;
                 const panel = document.getElementById('adminPanel');
@@ -960,6 +1492,12 @@
             },
 
             async refreshFormulas() {
+                // Check if authenticated
+                if (!this.state.adminEmail || !this.state.adminPassword) {
+                    this.showPasswordModal('refreshFormulas');
+                    return;
+                }
+                
                 const btn = document.getElementById('refreshFormulasBtn');
                 const originalText = btn.textContent;
                 btn.disabled = true;
@@ -967,7 +1505,11 @@
                 btn.textContent = '⏳ Refreshing...';
                 
                 try {
-                    const url = `${CONFIG.SCRIPT_URL}?action=refreshFormulas`;
+                    const params = new URLSearchParams();
+                    params.append("action", "refreshFormulas");
+                    params.append("email", this.state.adminEmail);
+                    params.append("password", this.state.adminPassword);
+                    const url = `${CONFIG.SCRIPT_URL}?${params.toString()}`;
                     const response = await fetch(url);
                     const data = await response.json();
                     
@@ -1051,6 +1593,9 @@
                 document.getElementById('statTeamsOK').textContent = teamsOK;
                 document.getElementById('statShortages').textContent = teamsShortage;
                 document.getElementById('statCoverage').textContent = coverage + '%';
+                
+                // Update Total Agent on Leave
+                document.getElementById('statTotalOnLeave').textContent = data.totalAgentOnLeave || 0;
 
                 // Update date display
                 this.updateDateDisplay();
@@ -1225,14 +1770,75 @@
 
             // --- Leave Management ---
 
+            handleLeaveTypeChange() {
+                const leaveType = document.getElementById('leaveType').value;
+                const halfDayContainer = document.getElementById('halfDayOptionContainer');
+                if (leaveType === "Half Day") {
+                    halfDayContainer.classList.remove('hidden');
+                } else {
+                    halfDayContainer.classList.add('hidden');
+                }
+            },
+
+            handleLeaveUpdateTypeChange() {
+                const leaveType = document.getElementById('leaveUpdateType').value;
+                const halfDayContainer = document.getElementById('halfDayUpdateOptionContainer');
+                if (leaveType === "Half Day") {
+                    halfDayContainer.classList.remove('hidden');
+                } else {
+                    halfDayContainer.classList.add('hidden');
+                }
+            },
+
             prepLeave(agentName, currentLeaveType) {
                 this.state.currentAgent = agentName;
                 document.getElementById('leaveTeam').value = this.state.currentTeam;
                 document.getElementById('leaveAgentDisplay').value = agentName;
                 document.getElementById('leaveAgentName').value = agentName;
-                document.getElementById('leaveDate').value = this.state.currentDate;
-                document.getElementById('leaveType').value = currentLeaveType || "Sick Leave";
+                
+                // Parse leave type and half-day option if it's a half-day leave
+                let leaveType = currentLeaveType || "Sick Leave";
+                let halfDayOption = "";
+                if (currentLeaveType && currentLeaveType.includes("Half Day")) {
+                    // Check if it includes half-day option (e.g., "Half Day (1st Half)")
+                    const match = currentLeaveType.match(/\(([^)]+)\)/);
+                    if (match) {
+                        leaveType = "Half Day";
+                        halfDayOption = match[1];
+                    } else {
+                        leaveType = "Half Day";
+                    }
+                }
+                
+                document.getElementById('leaveType').value = leaveType;
                 document.getElementById('leaveNotes').value = "";
+                
+                // Show/hide half-day option based on leave type
+                this.handleLeaveTypeChange();
+                if (halfDayOption) {
+                    document.getElementById('halfDayOption').value = halfDayOption;
+                }
+                
+                // Initialize leave calendar state
+                if (!this.state.selectedLeaveDates) {
+                    this.state.selectedLeaveDates = [];
+                }
+                // Reset calendar month to current date
+                const dateParts = this.state.currentDate.split('-');
+                this.state.leaveCalendarMonth = parseInt(dateParts[1]) - 1;
+                this.state.leaveCalendarYear = parseInt(dateParts[0]);
+                
+                // If editing existing leave, pre-select the current date
+                if (currentLeaveType) {
+                    if (!this.state.selectedLeaveDates.includes(this.state.currentDate)) {
+                        this.state.selectedLeaveDates = [this.state.currentDate];
+                    }
+                } else {
+                    // For new leave, start with empty selection
+                    this.state.selectedLeaveDates = [];
+                }
+                
+                this.updateLeaveDateDisplay();
                 
                 // Show/hide Cancel Leave button and update title based on whether leave exists
                 const cancelBtn = document.getElementById('cancelLeaveBtn');
@@ -1251,6 +1857,13 @@
             },
 
             async submitLeave() {
+                // Validate that at least one date is selected
+                const selectedDates = this.state.selectedLeaveDates || [];
+                if (selectedDates.length === 0) {
+                    this.toast("Please select at least one date", "error");
+                    return;
+                }
+                
                 // Disable and gray out the submit button
                 const submitBtn = document.getElementById('leaveSubmitBtn');
                 if (submitBtn) {
@@ -1259,55 +1872,82 @@
                     submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
                 }
                 
-                this.showLoader(true, "Saving...");
-                const payload = {
-                    action: "addLeave",
-                    date: document.getElementById('leaveDate').value,
-                    team: document.getElementById('leaveTeam').value,
-                    name: document.getElementById('leaveAgentName').value,
-                    type: document.getElementById('leaveType').value,
-                    notes: document.getElementById('leaveNotes').value
-                };
+                this.showLoader(true, `Saving ${selectedDates.length} leave record(s)...`);
+                
+                // Send each date as a separate request
+                let successCount = 0;
+                let errorCount = 0;
+                const errors = [];
+                
+                for (const date of selectedDates) {
+                    let leaveType = document.getElementById('leaveType').value;
+                    // If Half Day, append the half-day option
+                    if (leaveType === "Half Day") {
+                        const halfDayOption = document.getElementById('halfDayOption').value;
+                        leaveType = `Half Day (${halfDayOption})`;
+                    }
+                    
+                    const payload = {
+                        action: "addLeave",
+                        date: date,
+                        team: document.getElementById('leaveTeam').value,
+                        name: document.getElementById('leaveAgentName').value,
+                        type: leaveType,
+                        notes: document.getElementById('leaveNotes').value
+                    };
 
-                try {
-                    // Use GET request with URL parameters to avoid CORS issues
-                    const params = new URLSearchParams();
-                    Object.keys(payload).forEach(key => {
-                        params.append(key, payload[key]);
-                    });
-                    
-                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
-                        method: "GET"
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    try {
+                        // Use GET request with URL parameters to avoid CORS issues
+                        const params = new URLSearchParams();
+                        Object.keys(payload).forEach(key => {
+                            params.append(key, payload[key]);
+                        });
+                        
+                        const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                            method: "GET"
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const result = await response.json();
+                        
+                        if (result.ok) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            errors.push(`${date}: ${result.error || "Unknown error"}`);
+                        }
+                    } catch (err) {
+                        errorCount++;
+                        errors.push(`${date}: ${err.message}`);
+                        console.error("Leave submission error for date " + date + ":", err);
                     }
-                    
-                    const result = await response.json();
-                    
-                    if (result.ok) {
-                        this.toast(result.updated ? "Leave updated successfully" : "Leave added successfully");
-                        this.closeModal('leaveModal');
-                        // Refresh details
-                        this.loadTeamDetails(this.state.currentTeam);
-                        // Refresh dashboard background
-                        this.refreshData();
-                    } else {
-                        throw new Error(result.error || "Unknown error");
-                    }
-                } catch (err) {
-                    console.error("Leave submission error:", err);
-                    this.toast(`Failed to add leave: ${err.message}`, "error");
-                } finally {
-                    this.showLoader(false);
-                    // Re-enable and restore button color
-                    const submitBtn = document.getElementById('leaveSubmitBtn');
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                        submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    }
+                }
+                
+                // Show summary message
+                if (errorCount === 0) {
+                    this.toast(`Successfully added ${successCount} leave record(s)`, "success");
+                    this.closeModal('leaveModal');
+                    // Refresh details
+                    this.loadTeamDetails(this.state.currentTeam);
+                    // Refresh dashboard background
+                    this.refreshData();
+                } else if (successCount > 0) {
+                    this.toast(`Added ${successCount} leave record(s), but ${errorCount} failed. Check console for details.`, "warning");
+                    console.error("Leave submission errors:", errors);
+                } else {
+                    this.toast(`Failed to add leave records. Check console for details.`, "error");
+                    console.error("Leave submission errors:", errors);
+                }
+                
+                this.showLoader(false);
+                // Re-enable and restore button color
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 }
             },
 
@@ -1400,8 +2040,89 @@
                 }
             },
 
-            // --- Roster Edit (Admin) ---
+            // --- Password Authentication ---
+            
+            showPasswordModal(action) {
+                // Store the action to perform after authentication
+                this.state.pendingAction = action;
+                // Clear previous inputs
+                document.getElementById('adminEmail').value = '';
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('passwordError').classList.add('hidden');
+                document.getElementById('passwordError').textContent = '';
+                this.openModal('passwordModal');
+            },
 
+            async submitPassword() {
+                const email = document.getElementById('adminEmail').value.trim();
+                const password = document.getElementById('adminPassword').value;
+                
+                if (!email || !password) {
+                    document.getElementById('passwordError').textContent = 'Please enter both email and password';
+                    document.getElementById('passwordError').classList.remove('hidden');
+                    return;
+                }
+                
+                // Disable submit button
+                const submitBtn = document.getElementById('passwordSubmitBtn');
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+                submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                
+                this.showLoader(true, "Authenticating...");
+                
+                try {
+                    const params = new URLSearchParams();
+                    params.append("action", "authenticate");
+                    params.append("email", email);
+                    params.append("password", password);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.authenticated) {
+                        // Authentication successful - store credentials for this session
+                        this.state.adminEmail = email;
+                        this.state.adminPassword = password;
+                        
+                        // Close modal and perform the pending action
+                        this.closeModal('passwordModal');
+                        const pendingAction = this.state.pendingAction;
+                        this.state.pendingAction = null;
+                        
+                        // Execute the pending action
+                        if (pendingAction === 'updateRoster') {
+                            this.openRosterEditModal();
+                        } else if (pendingAction === 'manageAgents') {
+                            this.openAgentManageModal();
+                        } else if (pendingAction === 'refreshFormulas') {
+                            this.refreshFormulas();
+                        }
+                    } else {
+                        throw new Error(result.error || "Invalid email or password");
+                    }
+                } catch (err) {
+                    console.error("Authentication error:", err);
+                    document.getElementById('passwordError').textContent = err.message || "Authentication failed. Please check your credentials.";
+                    document.getElementById('passwordError').classList.remove('hidden');
+                } finally {
+                    this.showLoader(false);
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitBtn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+                }
+            },
+
+            // --- Roster Edit (Admin) ---
+            
             openRosterEditModal() {
                 // Reset all fields
                 document.getElementById('rosterTeam').value = "";
@@ -1519,6 +2240,13 @@
             },
 
             async submitRosterUpdate() {
+                // Check if authenticated
+                if (!this.state.adminEmail || !this.state.adminPassword) {
+                    this.closeModal('rosterEditModal');
+                    this.showPasswordModal('updateRoster');
+                    return;
+                }
+                
                 const team = document.getElementById('rosterTeam').value;
                 const name = document.getElementById('rosterAgent').value;
                 const shift = document.getElementById('rosterShift').value;
@@ -1627,6 +2355,9 @@
                     Object.keys(payload).forEach(key => {
                         params.append(key, payload[key]);
                     });
+                    // Add authentication credentials
+                    params.append("email", this.state.adminEmail);
+                    params.append("password", this.state.adminPassword);
                     
                     console.log("URL params:", params.toString());
                     
@@ -1664,11 +2395,25 @@
             // --- Leave Update (Admin) ---
 
             openLeaveUpdateModal() {
-                document.getElementById('leaveUpdateDate').value = this.state.currentDate;
                 document.getElementById('leaveUpdateTeam').value = "";
                 document.getElementById('leaveUpdateAgent').innerHTML = '<option value="">Select Team First</option>';
                 document.getElementById('leaveUpdateType').value = "Sick Leave";
                 document.getElementById('leaveUpdateNotes').value = "";
+                
+                // Hide half-day option container initially
+                document.getElementById('halfDayUpdateOptionContainer').classList.add('hidden');
+                
+                // Initialize leave update calendar state
+                if (!this.state.selectedLeaveUpdateDates) {
+                    this.state.selectedLeaveUpdateDates = [];
+                }
+                // Reset calendar month to current date
+                const dateParts = this.state.currentDate.split('-');
+                this.state.leaveUpdateCalendarMonth = parseInt(dateParts[1]) - 1;
+                this.state.leaveUpdateCalendarYear = parseInt(dateParts[0]);
+                
+                this.updateLeaveUpdateDateDisplay();
+                
                 this.openModal('leaveUpdateModal');
             },
 
@@ -1718,52 +2463,99 @@
             async submitLeaveUpdate() {
                 const team = document.getElementById('leaveUpdateTeam').value;
                 const name = document.getElementById('leaveUpdateAgent').value;
-                const date = document.getElementById('leaveUpdateDate').value;
+                const selectedDates = this.state.selectedLeaveUpdateDates || [];
                 
-                if (!team || !name || !date) {
-                    this.toast("Please fill in all required fields", "error");
+                if (!team || !name) {
+                    this.toast("Please select team and agent", "error");
                     return;
                 }
                 
-                this.showLoader(true, "Saving leave...");
-                const payload = {
-                    action: "addLeave",
-                    date: date,
-                    team: team,
-                    name: name,
-                    type: document.getElementById('leaveUpdateType').value,
-                    notes: document.getElementById('leaveUpdateNotes').value
-                };
+                if (selectedDates.length === 0) {
+                    this.toast("Please select at least one date", "error");
+                    return;
+                }
+                
+                // Disable and gray out the submit button
+                const submitBtn = document.querySelector('#leaveUpdateForm button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+                    submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                }
+                
+                this.showLoader(true, `Saving ${selectedDates.length} leave record(s)...`);
+                
+                // Send each date as a separate request
+                let successCount = 0;
+                let errorCount = 0;
+                const errors = [];
+                
+                for (const date of selectedDates) {
+                    let leaveType = document.getElementById('leaveUpdateType').value;
+                    // If Half Day, append the half-day option
+                    if (leaveType === "Half Day") {
+                        const halfDayOption = document.getElementById('halfDayUpdateOption').value;
+                        leaveType = `Half Day (${halfDayOption})`;
+                    }
+                    
+                    const payload = {
+                        action: "addLeave",
+                        date: date,
+                        team: team,
+                        name: name,
+                        type: leaveType,
+                        notes: document.getElementById('leaveUpdateNotes').value
+                    };
 
-                try {
-                    // Use GET request with URL parameters to avoid CORS issues
-                    const params = new URLSearchParams();
-                    Object.keys(payload).forEach(key => {
-                        params.append(key, payload[key]);
-                    });
-                    
-                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
-                        method: "GET"
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    try {
+                        // Use GET request with URL parameters to avoid CORS issues
+                        const params = new URLSearchParams();
+                        Object.keys(payload).forEach(key => {
+                            params.append(key, payload[key]);
+                        });
+                        
+                        const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                            method: "GET"
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const result = await response.json();
+                        
+                        if (result.ok) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            errors.push(`${date}: ${result.error || "Unknown error"}`);
+                        }
+                    } catch (err) {
+                        errorCount++;
+                        errors.push(`${date}: ${err.message}`);
+                        console.error("Leave update error for date " + date + ":", err);
                     }
-                    
-                    const result = await response.json();
-                    
-                    if (result.ok) {
-                        this.toast(result.updated ? "Leave updated successfully" : "Leave added successfully");
-                        this.closeModal('leaveUpdateModal');
-                        this.refreshData();
-                    } else {
-                        throw new Error(result.error || "Unknown error");
-                    }
-                } catch (err) {
-                    console.error("Leave update error:", err);
-                    this.toast(`Failed to save leave: ${err.message}`, "error");
-                } finally {
-                    this.showLoader(false);
+                }
+                
+                // Show summary message
+                if (errorCount === 0) {
+                    this.toast(`Successfully added ${successCount} leave record(s)`, "success");
+                    this.closeModal('leaveUpdateModal');
+                    this.refreshData();
+                } else if (successCount > 0) {
+                    this.toast(`Added ${successCount} leave record(s), but ${errorCount} failed. Check console for details.`, "warning");
+                    console.error("Leave update errors:", errors);
+                } else {
+                    this.toast(`Failed to add leave records. Check console for details.`, "error");
+                    console.error("Leave update errors:", errors);
+                }
+                
+                this.showLoader(false);
+                // Re-enable and restore button color
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitBtn.classList.add('bg-teal-600', 'hover:bg-teal-700');
                 }
             },
 
@@ -1979,6 +2771,13 @@
             },
 
             async addAgent() {
+                // Check if authenticated
+                if (!this.state.adminEmail || !this.state.adminPassword) {
+                    this.closeModal('agentManageModal');
+                    this.showPasswordModal('manageAgents');
+                    return;
+                }
+                
                 const team = document.getElementById('addAgentTeam').value;
                 const name = document.getElementById('addAgentName').value.trim();
                 const shift = document.getElementById('addAgentShift').value.trim();
@@ -2016,6 +2815,9 @@
                     params.append("name", name);
                     params.append("shift", shift);
                     params.append("weekendDays", weekendDays.join(','));
+                    // Add authentication credentials
+                    params.append("email", this.state.adminEmail);
+                    params.append("password", this.state.adminPassword);
                     
                     const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
                         method: "GET"
@@ -2048,6 +2850,13 @@
             },
 
             async removeAgent() {
+                // Check if authenticated
+                if (!this.state.adminEmail || !this.state.adminPassword) {
+                    this.closeModal('agentManageModal');
+                    this.showPasswordModal('manageAgents');
+                    return;
+                }
+                
                 const team = document.getElementById('removeAgentTeam').value;
                 const name = document.getElementById('removeAgentName').value;
                 
@@ -2073,6 +2882,9 @@
                     params.append("action", "removeAgent");
                     params.append("team", team);
                     params.append("name", name);
+                    // Add authentication credentials
+                    params.append("email", this.state.adminEmail);
+                    params.append("password", this.state.adminPassword);
                     
                     const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
                         method: "GET"
