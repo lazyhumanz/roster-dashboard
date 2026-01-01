@@ -105,6 +105,10 @@
                         <div id="calendarDays" class="grid grid-cols-7 gap-1"></div>
                     </div>
                 </div>
+                <button onclick="window.open('roster-view.html?scriptUrl=' + encodeURIComponent(CONFIG.SCRIPT_URL), '_blank')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    View Roster
+                </button>
                 <button onclick="app.refreshData()" class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="Refresh">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 </button>
@@ -560,7 +564,31 @@
         </div>
     </div>
 
-    <!-- 6. Leave List Modal (Admin) -->
+    <!-- 6. Roster View Modal -->
+    <div id="rosterViewModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 py-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('rosterViewModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-[95vw] w-full p-6 relative z-10 fade-in max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-xl font-bold text-blue-400">Roster View</h3>
+                        <button onclick="app.refreshRosterView()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                    <button onclick="app.closeModal('rosterViewModal')" class="text-slate-400 hover:text-white">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div id="rosterViewContent" class="overflow-x-auto">
+                    <div class="text-center text-slate-400 py-8">Loading roster data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Leave List Modal (Admin) -->
     <div id="leaveListModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveListModal')"></div>
@@ -1887,16 +1915,16 @@
                         leaveType = `Half Day (${halfDayOption})`;
                     }
                     
-                    const payload = {
-                        action: "addLeave",
+                const payload = {
+                    action: "addLeave",
                         date: date,
-                        team: document.getElementById('leaveTeam').value,
-                        name: document.getElementById('leaveAgentName').value,
+                    team: document.getElementById('leaveTeam').value,
+                    name: document.getElementById('leaveAgentName').value,
                         type: leaveType,
-                        notes: document.getElementById('leaveNotes').value
-                    };
+                    notes: document.getElementById('leaveNotes').value
+                };
 
-                    try {
+                try {
                         // Use GET request with URL parameters to avoid CORS issues
                         const params = new URLSearchParams();
                         Object.keys(payload).forEach(key => {
@@ -1911,9 +1939,9 @@
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         
-                        const result = await response.json();
-                        
-                        if (result.ok) {
+                    const result = await response.json();
+                    
+                    if (result.ok) {
                             successCount++;
                         } else {
                             errorCount++;
@@ -1929,11 +1957,11 @@
                 // Show summary message
                 if (errorCount === 0) {
                     this.toast(`Successfully added ${successCount} leave record(s)`, "success");
-                    this.closeModal('leaveModal');
-                    // Refresh details
-                    this.loadTeamDetails(this.state.currentTeam);
-                    // Refresh dashboard background
-                    this.refreshData();
+                        this.closeModal('leaveModal');
+                        // Refresh details
+                        this.loadTeamDetails(this.state.currentTeam);
+                        // Refresh dashboard background
+                        this.refreshData();
                 } else if (successCount > 0) {
                     this.toast(`Added ${successCount} leave record(s), but ${errorCount} failed. Check console for details.`, "warning");
                     console.error("Leave submission errors:", errors);
@@ -2122,7 +2150,7 @@
             },
 
             // --- Roster Edit (Admin) ---
-            
+
             openRosterEditModal() {
                 // Reset all fields
                 document.getElementById('rosterTeam').value = "";
@@ -2914,6 +2942,121 @@
                         submitBtn.classList.add('bg-red-600', 'hover:bg-red-700');
                     }
                 }
+            },
+
+            // --- Roster View ---
+
+            async openRosterView() {
+                this.openModal('rosterViewModal');
+                await this.loadRosterView();
+            },
+
+            async loadRosterView() {
+                const content = document.getElementById('rosterViewContent');
+                content.innerHTML = '<div class="text-center text-slate-400 py-8">Loading roster data...</div>';
+                
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getRosterView&date=${this.state.currentDate}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    this.renderRosterView(data);
+                } catch (err) {
+                    console.error("Load roster view error:", err);
+                    content.innerHTML = `<div class="text-center text-red-400 py-8">Error loading roster: ${err.message}</div>`;
+                }
+            },
+
+            async refreshRosterView() {
+                await this.loadRosterView();
+                this.toast("Roster refreshed", "success");
+            },
+
+            renderRosterView(data) {
+                const content = document.getElementById('rosterViewContent');
+                
+                if (!data.weeks || data.weeks.length === 0) {
+                    content.innerHTML = '<div class="text-center text-slate-400 py-8">No roster data available</div>';
+                    return;
+                }
+                
+                let html = '<div class="space-y-6">';
+                
+                // Render each week
+                data.weeks.forEach((week, weekIndex) => {
+                    html += `<div class="bg-slate-900 rounded-lg p-4 border border-slate-700">`;
+                    html += `<h4 class="text-lg font-bold text-white mb-4">Week ${weekIndex + 1}: ${week.startDate} to ${week.endDate}</h4>`;
+                    
+                    // Group by team
+                    const teams = {};
+                    week.data.forEach(entry => {
+                        if (!teams[entry.team]) {
+                            teams[entry.team] = [];
+                        }
+                        teams[entry.team].push(entry);
+                    });
+                    
+                    // Render each team
+                    Object.keys(teams).sort().forEach(team => {
+                        html += `<div class="mb-6">`;
+                        html += `<h5 class="text-md font-semibold text-amber-400 mb-3 pb-2 border-b border-slate-700">${team}</h5>`;
+                        html += `<div class="overflow-x-auto">`;
+                        html += `<table class="min-w-full divide-y divide-slate-700">`;
+                        html += `<thead class="bg-slate-700">`;
+                        html += `<tr>`;
+                        html += `<th class="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase">Agent</th>`;
+                        html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase">Mon</th>`;
+                        html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase">Tue</th>`;
+                        html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase">Wed</th>`;
+                        html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase">Thu</th>`;
+                        html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase">Fri</th>`;
+                        html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase">Sat</th>`;
+                        html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase">Sun</th>`;
+                        html += `</tr>`;
+                        html += `</thead>`;
+                        html += `<tbody class="bg-slate-800 divide-y divide-slate-700">`;
+                        
+                        teams[team].forEach(agent => {
+                            html += `<tr class="hover:bg-slate-700">`;
+                            html += `<td class="px-4 py-3 text-sm text-white font-medium">${agent.name}</td>`;
+                            
+                            // Render each day
+                            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].forEach(day => {
+                                const dayData = agent.days[day];
+                                let cellClass = "px-4 py-3 text-sm text-center";
+                                let cellContent = "-";
+                                
+                                if (dayData) {
+                                    if (dayData.isOffDay) {
+                                        cellClass += " text-orange-400 bg-orange-500/10";
+                                        cellContent = "Off Day";
+                                    } else if (dayData.shift) {
+                                        cellClass += " text-green-400";
+                                        cellContent = dayData.shift;
+                                    }
+                                }
+                                
+                                html += `<td class="${cellClass}">${cellContent}</td>`;
+                            });
+                            
+                            html += `</tr>`;
+                        });
+                        
+                        html += `</tbody>`;
+                        html += `</table>`;
+                        html += `</div>`;
+                        html += `</div>`;
+                    });
+                    
+                    html += `</div>`;
+                });
+                
+                html += '</div>';
+                content.innerHTML = html;
             },
 
             // --- UI Helpers ---
