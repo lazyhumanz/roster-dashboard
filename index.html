@@ -154,6 +154,14 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     Refresh Formulas
                 </button>
+                <button onclick="app.showPasswordModal('createTeam')" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Create New Team
+                </button>
+                <button onclick="app.showPasswordModal('editTeam')" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 font-medium shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Edit Team
+                </button>
             </div>
         </div>
 
@@ -585,7 +593,132 @@
         </div>
     </div>
 
-    <!-- 7. Leave List Modal (Admin) -->
+    <!-- 7. Create New Team Modal -->
+    <div id="createTeamModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 py-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('createTeamModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-2xl w-full p-6 relative z-10 fade-in max-h-[90vh] overflow-y-auto">
+                <h3 class="text-xl font-bold mb-4 text-indigo-400">Create New Team</h3>
+                <p class="text-sm text-slate-400 mb-4">Enter a name for the new team and set minimum required agents for each day.</p>
+                <form id="createTeamForm" onsubmit="event.preventDefault(); app.submitCreateTeam();">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Team Name</label>
+                        <input type="text" id="newTeamName" required class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="Enter team name (e.g., Support Team)">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Minimum Required (per day)</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Monday</label>
+                                <input type="number" id="minRequiredMonday" min="0" value="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Tuesday</label>
+                                <input type="number" id="minRequiredTuesday" min="0" value="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Wednesday</label>
+                                <input type="number" id="minRequiredWednesday" min="0" value="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Thursday</label>
+                                <input type="number" id="minRequiredThursday" min="0" value="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Friday</label>
+                                <input type="number" id="minRequiredFriday" min="0" value="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Saturday</label>
+                                <input type="number" id="minRequiredSaturday" min="0" value="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Sunday</label>
+                                <input type="number" id="minRequiredSunday" min="0" value="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="createTeamError" class="mb-4 hidden text-red-400 text-sm"></div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="app.closeModal('createTeamModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Cancel</button>
+                        <button type="submit" id="createTeamSubmitBtn" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow-sm">Create Team</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Edit Team Modal -->
+    <div id="editTeamModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 py-4">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('editTeamModal')"></div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl transform transition-all max-w-2xl w-full p-6 relative z-10 fade-in max-h-[90vh] overflow-y-auto">
+                <h3 class="text-xl font-bold mb-4 text-purple-400">Edit Team</h3>
+                <form id="editTeamForm" onsubmit="event.preventDefault(); app.submitEditTeam();">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Select Team</label>
+                        <select id="editTeamSelect" onchange="app.loadTeamForEdit()" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                            <option value="">Select Team</option>
+                        </select>
+                    </div>
+                    
+                    <div id="editTeamFields" class="hidden">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Team Name</label>
+                            <input type="text" id="editTeamName" required class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Minimum Required (per day)</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Monday</label>
+                                    <input type="number" id="editMinRequiredMonday" min="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Tuesday</label>
+                                    <input type="number" id="editMinRequiredTuesday" min="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Wednesday</label>
+                                    <input type="number" id="editMinRequiredWednesday" min="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Thursday</label>
+                                    <input type="number" id="editMinRequiredThursday" min="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Friday</label>
+                                    <input type="number" id="editMinRequiredFriday" min="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Saturday</label>
+                                    <input type="number" id="editMinRequiredSaturday" min="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Sunday</label>
+                                    <input type="number" id="editMinRequiredSunday" min="0" class="w-full border border-slate-600 rounded p-2 bg-slate-700 text-white focus:ring-purple-500 focus:border-purple-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="editTeamError" class="mb-4 hidden text-red-400 text-sm"></div>
+                    <div class="flex justify-between gap-2">
+                        <button type="button" onclick="app.deleteTeam()" id="deleteTeamBtn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 shadow-sm hidden">Delete Team</button>
+                        <div class="flex gap-2 ml-auto">
+                            <button type="button" onclick="app.closeModal('editTeamModal')" class="px-4 py-2 border border-slate-600 rounded text-slate-300 hover:bg-slate-700">Cancel</button>
+                            <button type="submit" id="editTeamSubmitBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 shadow-sm hidden">Update Team</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Leave List Modal (Admin) -->
     <div id="leaveListModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onclick="app.closeModal('leaveListModal')"></div>
@@ -875,7 +1008,8 @@
                 isEditingLeave: false, // Track if editing existing leave
                 adminEmail: null, // Store authenticated admin email
                 adminPassword: null, // Store authenticated admin password
-                pendingAction: null // Store action to perform after authentication
+                pendingAction: null, // Store action to perform after authentication
+                authTimestamp: null // Store when authentication was successful (for 1-hour session)
             },
 
             init() {
@@ -899,19 +1033,8 @@
                 // Bind closeLeaveUpdateCalendarOnOutsideClick to app context
                 this.closeLeaveUpdateCalendarOnOutsideClick = this.closeLeaveUpdateCalendarOnOutsideClick.bind(this);
 
-                // Populate Admin Team Dropdowns
-                const teamSelects = ['rosterTeam', 'leaveUpdateTeam'];
-                teamSelects.forEach(selectId => {
-                    const select = document.getElementById(selectId);
-                    if (select) {
-                CONFIG.TEAMS.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t;
-                    opt.textContent = t;
-                            select.appendChild(opt);
-                        });
-                    }
-                });
+                // Populate Admin Team Dropdowns - fetch from backend
+                this.populateTeamDropdowns();
 
                 this.refreshData();
             },
@@ -1517,8 +1640,8 @@
             },
 
             async refreshFormulas() {
-                // Check if authenticated
-                if (!this.state.adminEmail || !this.state.adminPassword) {
+                // Check if authenticated (with 1-hour session)
+                if (!this.isAuthSessionValid() || !this.state.adminEmail || !this.state.adminPassword) {
                     this.showPasswordModal('refreshFormulas');
                     return;
                 }
@@ -2067,7 +2190,53 @@
 
             // --- Password Authentication ---
             
-            showPasswordModal(action) {
+            isAuthSessionValid() {
+                // Check if authentication session is still valid (within 1 hour)
+                if (!this.state.authTimestamp) {
+                    return false;
+                }
+                
+                const now = new Date().getTime();
+                const authTime = this.state.authTimestamp;
+                const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+                
+                return (now - authTime) < oneHour;
+            },
+            
+            async executePendingAction(action) {
+                try {
+                    // Show loading indicator
+                    this.showLoader(true, "Loading...");
+                    
+                    if (action === 'updateRoster') {
+                        await this.openRosterEditModal();
+                    } else if (action === 'manageAgents') {
+                        await this.openAgentManageModal();
+                    } else if (action === 'refreshFormulas') {
+                        await this.refreshFormulas();
+                    } else if (action === 'createTeam') {
+                        this.openCreateTeamModal();
+                    } else if (action === 'editTeam') {
+                        await this.openEditTeamModal();
+                    }
+                } catch (err) {
+                    console.error("Error executing action:", err);
+                    this.toast("Error executing action. Please try again.", "error");
+                } finally {
+                    // Hide loading indicator
+                    this.showLoader(false);
+                }
+            },
+            
+            async showPasswordModal(action) {
+                // Check if we have a valid session (within 1 hour)
+                if (this.isAuthSessionValid() && this.state.adminEmail && this.state.adminPassword) {
+                    // Session is valid, execute the action directly with loading indicator
+                    await this.executePendingAction(action);
+                    return;
+                }
+                
+                // Session expired or doesn't exist, show password modal
                 // Store the action to perform after authentication
                 this.state.pendingAction = action;
                 // Clear previous inputs
@@ -2113,9 +2282,10 @@
                     const result = await response.json();
                     
                     if (result.authenticated) {
-                        // Authentication successful - store credentials for this session
+                        // Authentication successful - store credentials and timestamp for 1-hour session
                         this.state.adminEmail = email;
                         this.state.adminPassword = password;
+                        this.state.authTimestamp = new Date().getTime(); // Store current timestamp
                         
                         // Close modal and perform the pending action
                         this.closeModal('passwordModal');
@@ -2123,13 +2293,7 @@
                         this.state.pendingAction = null;
                         
                         // Execute the pending action
-                        if (pendingAction === 'updateRoster') {
-                            this.openRosterEditModal();
-                        } else if (pendingAction === 'manageAgents') {
-                            this.openAgentManageModal();
-                        } else if (pendingAction === 'refreshFormulas') {
-                            this.refreshFormulas();
-                        }
+                        await this.executePendingAction(pendingAction);
                     } else {
                         throw new Error(result.error || "Invalid email or password");
                     }
@@ -2148,45 +2312,36 @@
 
             // --- Roster Edit (Admin) ---
 
-            openRosterEditModal() {
-                // Reset all fields
-                document.getElementById('rosterTeam').value = "";
-                document.getElementById('rosterAgent').innerHTML = '<option value="">Select Team First</option>';
-                document.getElementById('rosterShift').value = "";
-                document.getElementById('rosterFromDate').value = "";
-                document.getElementById('rosterToDate').value = "";
-                document.getElementById('rosterStartDate').value = "";
-                document.getElementById('rosterNewTeam').value = "";
-                document.getElementById('rosterPermanentNewTeam').value = "";
-                document.getElementById('rosterDayOffOne').value = "";
-                document.getElementById('rosterDayOffTwo').value = "";
+            async openRosterEditModal() {
+                // Show loading indicator
+                this.showLoader(true, "Loading roster editor...");
                 
-                // Set default to temporary
-                document.querySelector('input[name="changeType"][value="temporary"]').checked = true;
-                this.toggleChangeType();
-                
-                // Populate new team dropdowns
-                const newTeamSelect = document.getElementById('rosterNewTeam');
-                const permanentNewTeamSelect = document.getElementById('rosterPermanentNewTeam');
-                
-                newTeamSelect.innerHTML = '<option value="">Select New Team</option>';
-                permanentNewTeamSelect.innerHTML = '<option value="">Keep Current Team</option>';
-                
-                CONFIG.TEAMS.forEach(t => {
-                    // For temporary changes
-                    const opt1 = document.createElement('option');
-                    opt1.value = t;
-                    opt1.textContent = t;
-                    newTeamSelect.appendChild(opt1);
+                try {
+                    // Reset all fields
+                    document.getElementById('rosterTeam').value = "";
+                    document.getElementById('rosterAgent').innerHTML = '<option value="">Select Team First</option>';
+                    document.getElementById('rosterShift').value = "";
+                    document.getElementById('rosterFromDate').value = "";
+                    document.getElementById('rosterToDate').value = "";
+                    document.getElementById('rosterStartDate').value = "";
+                    document.getElementById('rosterNewTeam').value = "";
+                    document.getElementById('rosterPermanentNewTeam').value = "";
+                    document.getElementById('rosterDayOffOne').value = "";
+                    document.getElementById('rosterDayOffTwo').value = "";
                     
-                    // For permanent changes
-                    const opt2 = document.createElement('option');
-                    opt2.value = t;
-                    opt2.textContent = t;
-                    permanentNewTeamSelect.appendChild(opt2);
-                });
-                
-                this.openModal('rosterEditModal');
+                    // Set default to temporary
+                    document.querySelector('input[name="changeType"][value="temporary"]').checked = true;
+                    this.toggleChangeType();
+                    
+                    // Populate new team dropdowns - fetch from backend
+                    await this.populateNewTeamDropdowns();
+                    
+                    // Open modal after data is loaded
+                    this.openModal('rosterEditModal');
+                } finally {
+                    // Hide loading indicator
+                    this.showLoader(false);
+                }
             },
 
             toggleChangeType() {
@@ -2682,41 +2837,35 @@
 
             // --- Agent Management (Admin) ---
 
-            openAgentManageModal() {
-                // Populate team dropdowns
-                const addTeamSelect = document.getElementById('addAgentTeam');
-                const removeTeamSelect = document.getElementById('removeAgentTeam');
+            async openAgentManageModal() {
+                // Show loading indicator
+                this.showLoader(true, "Loading agent manager...");
                 
-                addTeamSelect.innerHTML = '<option value="">Select Team</option>';
-                removeTeamSelect.innerHTML = '<option value="">Select Team</option>';
-                
-                CONFIG.TEAMS.forEach(t => {
-                    const opt1 = document.createElement('option');
-                    opt1.value = t;
-                    opt1.textContent = t;
-                    addTeamSelect.appendChild(opt1);
+                try {
+                    // Populate team dropdowns - fetch from backend
+                    await this.populateAgentManageTeamDropdowns();
                     
-                    const opt2 = document.createElement('option');
-                    opt2.value = t;
-                    opt2.textContent = t;
-                    removeTeamSelect.appendChild(opt2);
-                });
-                
-                // Reset forms
-                document.getElementById('addAgentName').value = "";
-                document.getElementById('addAgentShift').value = "";
-                document.getElementById('removeAgentName').innerHTML = '<option value="">Select Team First</option>';
-                
-                // Reset weekend day buttons
-                document.querySelectorAll('.weekend-day-btn').forEach(btn => {
-                    btn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
-                    btn.classList.add('border-slate-600', 'bg-slate-700', 'text-slate-300');
-                    btn.dataset.selected = 'false';
-                });
-                
-                // Switch to Add tab by default
-                this.switchAgentTab('add');
-                this.openModal('agentManageModal');
+                    // Reset forms
+                    document.getElementById('addAgentName').value = "";
+                    document.getElementById('addAgentShift').value = "";
+                    document.getElementById('removeAgentName').innerHTML = '<option value="">Select Team First</option>';
+                    
+                    // Reset weekend day buttons
+                    document.querySelectorAll('.weekend-day-btn').forEach(btn => {
+                        btn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
+                        btn.classList.add('border-slate-600', 'bg-slate-700', 'text-slate-300');
+                        btn.dataset.selected = 'false';
+                    });
+                    
+                    // Switch to Add tab by default
+                    this.switchAgentTab('add');
+                    
+                    // Open modal after data is loaded
+                    this.openModal('agentManageModal');
+                } finally {
+                    // Hide loading indicator
+                    this.showLoader(false);
+                }
             },
 
             toggleWeekendDay(dayName, buttonElement) {
@@ -2937,6 +3086,503 @@
                         submitBtn.disabled = false;
                         submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
                         submitBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                    }
+                }
+            },
+
+            // --- Create New Team ---
+
+            openCreateTeamModal() {
+                // Clear previous input
+                document.getElementById('newTeamName').value = '';
+                document.getElementById('createTeamError').classList.add('hidden');
+                document.getElementById('createTeamError').textContent = '';
+                this.openModal('createTeamModal');
+            },
+
+            async submitCreateTeam() {
+                const teamName = document.getElementById('newTeamName').value.trim();
+                
+                if (!teamName) {
+                    document.getElementById('createTeamError').textContent = 'Please enter a team name';
+                    document.getElementById('createTeamError').classList.remove('hidden');
+                    return;
+                }
+                
+                // Check if authenticated (with 1-hour session)
+                if (!this.isAuthSessionValid() || !this.state.adminEmail || !this.state.adminPassword) {
+                    this.closeModal('createTeamModal');
+                    this.showPasswordModal('createTeam');
+                    return;
+                }
+                
+                // Collect minimum required values
+                const minRequired = {
+                    Monday: parseInt(document.getElementById('minRequiredMonday').value) || 0,
+                    Tuesday: parseInt(document.getElementById('minRequiredTuesday').value) || 0,
+                    Wednesday: parseInt(document.getElementById('minRequiredWednesday').value) || 0,
+                    Thursday: parseInt(document.getElementById('minRequiredThursday').value) || 0,
+                    Friday: parseInt(document.getElementById('minRequiredFriday').value) || 0,
+                    Saturday: parseInt(document.getElementById('minRequiredSaturday').value) || 0,
+                    Sunday: parseInt(document.getElementById('minRequiredSunday').value) || 0
+                };
+                
+                // Disable submit button
+                const submitBtn = document.getElementById('createTeamSubmitBtn');
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                submitBtn.textContent = 'Creating...';
+                
+                this.showLoader(true, "Creating team...");
+                
+                try {
+                    const params = new URLSearchParams();
+                    params.append("action", "createTeam");
+                    params.append("teamName", teamName);
+                    params.append("minRequired", JSON.stringify(minRequired));
+                    // Add authentication credentials
+                    params.append("email", this.state.adminEmail);
+                    params.append("password", this.state.adminPassword);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Team created successfully! You can now add agents to this team.");
+                        this.closeModal('createTeamModal');
+                        // Reset form
+                        document.getElementById('newTeamName').value = '';
+                        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].forEach(day => {
+                            document.getElementById(`minRequired${day}`).value = '0';
+                        });
+                        // Refresh team dropdowns and dashboard to show the new team
+                        await this.populateTeamDropdowns();
+                        await this.populateNewTeamDropdowns();
+                        await this.populateAgentManageTeamDropdowns();
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Failed to create team");
+                    }
+                } catch (err) {
+                    console.error("Create team error:", err);
+                    document.getElementById('createTeamError').textContent = err.message || "Failed to create team. Please try again.";
+                    document.getElementById('createTeamError').classList.remove('hidden');
+                } finally {
+                    this.showLoader(false);
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                    submitBtn.textContent = 'Create Team';
+                }
+            },
+
+            // --- Edit Team ---
+
+            async openEditTeamModal() {
+                // Show loading indicator
+                this.showLoader(true, "Loading team editor...");
+                
+                try {
+                    // Populate team dropdown
+                    const teamSelect = document.getElementById('editTeamSelect');
+                    teamSelect.innerHTML = '<option value="">Select Team</option>';
+                    
+                    try {
+                        const url = `${CONFIG.SCRIPT_URL}?action=getAllTeams`;
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        
+                        if (data.teams && Array.isArray(data.teams)) {
+                            data.teams.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t;
+                                opt.textContent = t;
+                                teamSelect.appendChild(opt);
+                            });
+                        }
+                    } catch (err) {
+                        console.error("Error fetching teams:", err);
+                    }
+                    
+                    // Reset form
+                    document.getElementById('editTeamFields').classList.add('hidden');
+                    document.getElementById('editTeamSubmitBtn').classList.add('hidden');
+                    document.getElementById('deleteTeamBtn').classList.add('hidden');
+                    document.getElementById('editTeamError').classList.add('hidden');
+                    document.getElementById('editTeamError').textContent = '';
+                    
+                    // Open modal after data is loaded
+                    this.openModal('editTeamModal');
+                } finally {
+                    // Hide loading indicator
+                    this.showLoader(false);
+                }
+            },
+
+            async loadTeamForEdit() {
+                const teamName = document.getElementById('editTeamSelect').value;
+                
+                if (!teamName) {
+                    document.getElementById('editTeamFields').classList.add('hidden');
+                    document.getElementById('editTeamSubmitBtn').classList.add('hidden');
+                    document.getElementById('deleteTeamBtn').classList.add('hidden');
+                    return;
+                }
+                
+                this.showLoader(true, "Loading team data...");
+                
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getTeamData&teamName=${encodeURIComponent(teamName)}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    // Populate form fields
+                    document.getElementById('editTeamName').value = data.teamName || teamName;
+                    document.getElementById('editMinRequiredMonday').value = data.minRequired?.Monday || 0;
+                    document.getElementById('editMinRequiredTuesday').value = data.minRequired?.Tuesday || 0;
+                    document.getElementById('editMinRequiredWednesday').value = data.minRequired?.Wednesday || 0;
+                    document.getElementById('editMinRequiredThursday').value = data.minRequired?.Thursday || 0;
+                    document.getElementById('editMinRequiredFriday').value = data.minRequired?.Friday || 0;
+                    document.getElementById('editMinRequiredSaturday').value = data.minRequired?.Saturday || 0;
+                    document.getElementById('editMinRequiredSunday').value = data.minRequired?.Sunday || 0;
+                    
+                    // Show form fields
+                    document.getElementById('editTeamFields').classList.remove('hidden');
+                    document.getElementById('editTeamSubmitBtn').classList.remove('hidden');
+                    document.getElementById('deleteTeamBtn').classList.remove('hidden');
+                } catch (err) {
+                    console.error("Error loading team data:", err);
+                    this.toast(`Failed to load team data: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                }
+            },
+
+            async submitEditTeam() {
+                const oldTeamName = document.getElementById('editTeamSelect').value;
+                const newTeamName = document.getElementById('editTeamName').value.trim();
+                
+                if (!oldTeamName || !newTeamName) {
+                    document.getElementById('editTeamError').textContent = 'Please select a team and enter a team name';
+                    document.getElementById('editTeamError').classList.remove('hidden');
+                    return;
+                }
+                
+                // Check if authenticated (with 1-hour session)
+                if (!this.isAuthSessionValid() || !this.state.adminEmail || !this.state.adminPassword) {
+                    this.closeModal('editTeamModal');
+                    this.showPasswordModal('editTeam');
+                    return;
+                }
+                
+                // Collect minimum required values
+                const minRequired = {
+                    Monday: parseInt(document.getElementById('editMinRequiredMonday').value) || 0,
+                    Tuesday: parseInt(document.getElementById('editMinRequiredTuesday').value) || 0,
+                    Wednesday: parseInt(document.getElementById('editMinRequiredWednesday').value) || 0,
+                    Thursday: parseInt(document.getElementById('editMinRequiredThursday').value) || 0,
+                    Friday: parseInt(document.getElementById('editMinRequiredFriday').value) || 0,
+                    Saturday: parseInt(document.getElementById('editMinRequiredSaturday').value) || 0,
+                    Sunday: parseInt(document.getElementById('editMinRequiredSunday').value) || 0
+                };
+                
+                // Disable submit button
+                const submitBtn = document.getElementById('editTeamSubmitBtn');
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+                submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                submitBtn.textContent = 'Updating...';
+                
+                this.showLoader(true, "Updating team...");
+                
+                try {
+                    const params = new URLSearchParams();
+                    params.append("action", "updateTeam");
+                    params.append("oldTeamName", oldTeamName);
+                    params.append("newTeamName", newTeamName);
+                    params.append("minRequired", JSON.stringify(minRequired));
+                    // Add authentication credentials
+                    params.append("email", this.state.adminEmail);
+                    params.append("password", this.state.adminPassword);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Team updated successfully!");
+                        this.closeModal('editTeamModal');
+                        // Refresh team dropdowns and dashboard
+                        await this.populateTeamDropdowns();
+                        await this.populateNewTeamDropdowns();
+                        await this.populateAgentManageTeamDropdowns();
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Failed to update team");
+                    }
+                } catch (err) {
+                    console.error("Update team error:", err);
+                    document.getElementById('editTeamError').textContent = err.message || "Failed to update team. Please try again.";
+                    document.getElementById('editTeamError').classList.remove('hidden');
+                } finally {
+                    this.showLoader(false);
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                    submitBtn.textContent = 'Update Team';
+                }
+            },
+
+            async deleteTeam() {
+                const teamName = document.getElementById('editTeamSelect').value;
+                
+                if (!teamName) {
+                    return;
+                }
+                
+                if (!confirm(`Are you sure you want to delete the team "${teamName}"? This will permanently delete the team and all its agents from the roster sheet. This action cannot be undone.`)) {
+                    return;
+                }
+                
+                // Check if authenticated (with 1-hour session)
+                if (!this.isAuthSessionValid() || !this.state.adminEmail || !this.state.adminPassword) {
+                    this.closeModal('editTeamModal');
+                    this.showPasswordModal('editTeam');
+                    return;
+                }
+                
+                // Disable delete button
+                const deleteBtn = document.getElementById('deleteTeamBtn');
+                deleteBtn.disabled = true;
+                deleteBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                deleteBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                deleteBtn.textContent = 'Deleting...';
+                
+                this.showLoader(true, "Deleting team...");
+                
+                try {
+                    const params = new URLSearchParams();
+                    params.append("action", "deleteTeam");
+                    params.append("teamName", teamName);
+                    // Add authentication credentials
+                    params.append("email", this.state.adminEmail);
+                    params.append("password", this.state.adminPassword);
+                    
+                    const response = await fetch(CONFIG.SCRIPT_URL + "?" + params.toString(), {
+                        method: "GET"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.ok) {
+                        this.toast("Team deleted successfully!");
+                        this.closeModal('editTeamModal');
+                        // Refresh team dropdowns and dashboard
+                        await this.populateTeamDropdowns();
+                        await this.populateNewTeamDropdowns();
+                        await this.populateAgentManageTeamDropdowns();
+                        this.refreshData();
+                    } else {
+                        throw new Error(result.error || "Failed to delete team");
+                    }
+                } catch (err) {
+                    console.error("Delete team error:", err);
+                    this.toast(`Failed to delete team: ${err.message}`, "error");
+                } finally {
+                    this.showLoader(false);
+                    // Re-enable delete button
+                    deleteBtn.disabled = false;
+                    deleteBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    deleteBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                    deleteBtn.textContent = 'Delete Team';
+                }
+            },
+
+            // --- Team Dropdown Population ---
+
+            async populateTeamDropdowns() {
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getAllTeams`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.teams && Array.isArray(data.teams)) {
+                        const teamSelects = ['rosterTeam', 'leaveUpdateTeam'];
+                        teamSelects.forEach(selectId => {
+                            const select = document.getElementById(selectId);
+                            if (select) {
+                                // Clear existing options except the first one
+                                const firstOption = select.querySelector('option[value=""]');
+                                select.innerHTML = '';
+                                if (firstOption) {
+                                    select.appendChild(firstOption);
+                                } else {
+                                    select.innerHTML = '<option value="">Select Team</option>';
+                                }
+                                
+                                data.teams.forEach(t => {
+                                    const opt = document.createElement('option');
+                                    opt.value = t;
+                                    opt.textContent = t;
+                                    select.appendChild(opt);
+                                });
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error fetching teams:", err);
+                    // Fallback to CONFIG.TEAMS if backend fails
+                    const teamSelects = ['rosterTeam', 'leaveUpdateTeam'];
+                    teamSelects.forEach(selectId => {
+                        const select = document.getElementById(selectId);
+                        if (select) {
+                            CONFIG.TEAMS.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t;
+                                opt.textContent = t;
+                                select.appendChild(opt);
+                            });
+                        }
+                    });
+                }
+            },
+
+            async populateNewTeamDropdowns() {
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getAllTeams`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.teams && Array.isArray(data.teams)) {
+                        const newTeamSelect = document.getElementById('rosterNewTeam');
+                        const permanentNewTeamSelect = document.getElementById('rosterPermanentNewTeam');
+                        
+                        if (newTeamSelect) {
+                            newTeamSelect.innerHTML = '<option value="">Select New Team</option>';
+                            data.teams.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t;
+                                opt.textContent = t;
+                                newTeamSelect.appendChild(opt);
+                            });
+                        }
+                        
+                        if (permanentNewTeamSelect) {
+                            permanentNewTeamSelect.innerHTML = '<option value="">Keep Current Team</option>';
+                            data.teams.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t;
+                                opt.textContent = t;
+                                permanentNewTeamSelect.appendChild(opt);
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching teams for new team dropdowns:", err);
+                    // Fallback to CONFIG.TEAMS
+                    const newTeamSelect = document.getElementById('rosterNewTeam');
+                    const permanentNewTeamSelect = document.getElementById('rosterPermanentNewTeam');
+                    
+                    if (newTeamSelect) {
+                        newTeamSelect.innerHTML = '<option value="">Select New Team</option>';
+                        CONFIG.TEAMS.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t;
+                            opt.textContent = t;
+                            newTeamSelect.appendChild(opt);
+                        });
+                    }
+                    
+                    if (permanentNewTeamSelect) {
+                        permanentNewTeamSelect.innerHTML = '<option value="">Keep Current Team</option>';
+                        CONFIG.TEAMS.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t;
+                            opt.textContent = t;
+                            permanentNewTeamSelect.appendChild(opt);
+                        });
+                    }
+                }
+            },
+
+            async populateAgentManageTeamDropdowns() {
+                try {
+                    const url = `${CONFIG.SCRIPT_URL}?action=getAllTeams`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.teams && Array.isArray(data.teams)) {
+                        const addTeamSelect = document.getElementById('addAgentTeam');
+                        const removeTeamSelect = document.getElementById('removeAgentTeam');
+                        
+                        if (addTeamSelect) {
+                            addTeamSelect.innerHTML = '<option value="">Select Team</option>';
+                            data.teams.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t;
+                                opt.textContent = t;
+                                addTeamSelect.appendChild(opt);
+                            });
+                        }
+                        
+                        if (removeTeamSelect) {
+                            removeTeamSelect.innerHTML = '<option value="">Select Team</option>';
+                            data.teams.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t;
+                                opt.textContent = t;
+                                removeTeamSelect.appendChild(opt);
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching teams for agent manage:", err);
+                    // Fallback to CONFIG.TEAMS
+                    const addTeamSelect = document.getElementById('addAgentTeam');
+                    const removeTeamSelect = document.getElementById('removeAgentTeam');
+                    
+                    if (addTeamSelect) {
+                        addTeamSelect.innerHTML = '<option value="">Select Team</option>';
+                        CONFIG.TEAMS.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t;
+                            opt.textContent = t;
+                            addTeamSelect.appendChild(opt);
+                        });
+                    }
+                    
+                    if (removeTeamSelect) {
+                        removeTeamSelect.innerHTML = '<option value="">Select Team</option>';
+                        CONFIG.TEAMS.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t;
+                            opt.textContent = t;
+                            removeTeamSelect.appendChild(opt);
+                        });
                     }
                 }
             },
