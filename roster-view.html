@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roster View - CEx Roster Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-white mb-1">CEx Roster View</h1>
+                <p id="currentDate" class="text-slate-400 text-sm"></p>
+            </div>
+            <button onclick="refreshRoster()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 font-medium shadow-sm flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Refresh
+            </button>
+        </div>
+
+        <!-- Roster Content -->
+        <div id="rosterContent" class="bg-slate-800 border border-slate-700 rounded-lg p-6">
+            <div class="text-center text-slate-400 py-8">Loading roster data...</div>
+        </div>
+
+        <!-- Notes Section -->
+        <div id="notesSection" class="mt-6 bg-slate-800 border border-slate-700 rounded-lg p-6">
+            <h2 class="text-xl font-bold text-amber-400 mb-4">Notes</h2>
+            <div id="notesContent" class="space-y-3">
+                <div class="text-slate-400 text-sm">No notes for today</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get script URL from URL parameter or parent window
+        const urlParams = new URLSearchParams(window.location.search);
+        let SCRIPT_URL = urlParams.get('scriptUrl');
+        
+        if (!SCRIPT_URL && window.opener) {
+            try {
+                SCRIPT_URL = window.opener.CONFIG?.SCRIPT_URL;
+            } catch (e) {
+                // Cross-origin restriction
+            }
+        }
+        
+        if (!SCRIPT_URL) {
+            // Try to get from localStorage
+            SCRIPT_URL = localStorage.getItem('scriptUrl');
+        }
+        
+        if (!SCRIPT_URL) {
+            document.body.innerHTML = '<div class="max-w-7xl mx-auto px-4 py-8 text-center"><h1 class="text-2xl font-bold text-red-400 mb-4">Error: Script URL not configured</h1><p class="text-slate-400">Please open this page from the main dashboard.</p></div>';
+            throw new Error("Script URL not configured");
+        }
+        
+        console.log("Script URL:", SCRIPT_URL);
+        
+        // Format date as YYYY-MM-DD
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Format date for display
+        function formatDateDisplay(date) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        }
+        
+        // Get today's date
+        const today = new Date();
+        const todayStr = formatDate(today);
+        
+        // Display current date
+        document.getElementById('currentDate').textContent = formatDateDisplay(today);
+        
+        // Load roster data
+        async function loadRoster() {
+            const content = document.getElementById('rosterContent');
+            content.innerHTML = '<div class="text-center text-slate-400 py-8">Loading roster data...</div>';
+            
+            try {
+                // Construct URL with proper encoding
+                const params = new URLSearchParams();
+                params.append('action', 'getRosterView');
+                params.append('date', todayStr);
+                const url = `${SCRIPT_URL}?${params.toString()}`;
+                
+                console.log("Fetching roster from:", url);
+                console.log("Today's date:", todayStr);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const responseText = await response.text();
+                console.log("Response status:", response.status);
+                console.log("Response preview:", responseText.substring(0, 300));
+                
+                if (!response.ok) {
+                    console.error("Response error:", response.status, responseText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Try to parse as JSON
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error("JSON parse error:", parseError);
+                    console.error("Response text:", responseText);
+                    throw new Error("Server returned invalid JSON. Response: " + responseText.substring(0, 200));
+                }
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                renderRoster(data);
+                loadNotes(data);
+            } catch (err) {
+                console.error("Load roster error:", err);
+                content.innerHTML = `<div class="text-center text-red-400 py-8">
+                    <p class="mb-2">Error loading roster: ${err.message}</p>
+                    <p class="text-sm text-slate-400">Please check the console for more details.</p>
+                </div>`;
+            }
+        }
+        
+        // Render roster table (like Google Sheet format)
+        function renderRoster(data) {
+            const content = document.getElementById('rosterContent');
+            
+            if (!data.roster || data.roster.length === 0) {
+                content.innerHTML = '<div class="text-center text-slate-400 py-8">No roster data available</div>';
+                return;
+            }
+            
+            // Group by team
+            const teams = {};
+            data.roster.forEach(entry => {
+                if (!teams[entry.team]) {
+                    teams[entry.team] = [];
+                }
+                teams[entry.team].push(entry);
+            });
+            
+            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            
+            let html = '<div class="space-y-6">';
+            
+            // Render each team
+            Object.keys(teams).sort().forEach(team => {
+                html += `<div class="mb-6">`;
+                html += `<h3 class="text-lg font-semibold text-amber-400 mb-3 pb-2 border-b border-slate-700">${team}</h3>`;
+                html += `<div class="overflow-x-auto custom-scroll">`;
+                html += `<table class="min-w-full divide-y divide-slate-700 border border-slate-600">`;
+                html += `<thead class="bg-slate-700">`;
+                html += `<tr>`;
+                html += `<th class="px-4 py-3 text-left text-xs font-medium text-slate-300 uppercase border-r border-slate-600">Agent Name</th>`;
+                dayNames.forEach(day => {
+                    html += `<th class="px-4 py-3 text-center text-xs font-medium text-slate-300 uppercase border-r border-slate-600">${day.substring(0, 3)}</th>`;
+                });
+                html += `</tr>`;
+                html += `</thead>`;
+                html += `<tbody class="bg-slate-800 divide-y divide-slate-700">`;
+                
+                teams[team].forEach(agent => {
+                    html += `<tr class="hover:bg-slate-700">`;
+                    html += `<td class="px-4 py-3 text-sm text-white font-medium border-r border-slate-600">${agent.name}</td>`;
+                    
+                    // Render each day
+                    dayNames.forEach(day => {
+                        const dayData = agent.days && agent.days[day];
+                        let cellContent = '-';
+                        let cellClass = 'px-4 py-3 text-sm text-center border-r border-slate-600';
+                        
+                        if (dayData) {
+                            if (dayData.isOffDay) {
+                                cellContent = 'Off Day';
+                                cellClass += ' text-orange-400 bg-orange-500/10';
+                            } else if (dayData.shift) {
+                                cellContent = dayData.shift;
+                                cellClass += ' text-green-400';
+                            }
+                        }
+                        
+                        html += `<td class="${cellClass}">${cellContent}</td>`;
+                    });
+                    
+                    html += `</tr>`;
+                });
+                
+                html += `</tbody>`;
+                html += `</table>`;
+                html += `</div>`;
+                html += `</div>`;
+            });
+            
+            html += '</div>';
+            content.innerHTML = html;
+        }
+        
+        // Load and render notes
+        function loadNotes(data) {
+            const notesContent = document.getElementById('notesContent');
+            const notes = [];
+            
+            // Add temporary changes
+            if (data.temporaryChanges && data.temporaryChanges.length > 0) {
+                data.temporaryChanges.forEach(change => {
+                    notes.push({
+                        type: 'temporary',
+                        message: `${change.name} is temporarily moved from ${change.originalTeam} to ${change.newTeam} until ${change.toDate}`
+                    });
+                });
+            }
+            
+            // Add leaves
+            if (data.leaves && data.leaves.length > 0) {
+                data.leaves.forEach(leave => {
+                    notes.push({
+                        type: 'leave',
+                        message: `${leave.name} (${leave.team}) is on ${leave.type} leave`
+                    });
+                });
+            }
+            
+            if (notes.length === 0) {
+                notesContent.innerHTML = '<div class="text-slate-400 text-sm">No notes for today</div>';
+                return;
+            }
+            
+            let html = '<div class="space-y-3">';
+            notes.forEach(note => {
+                const bgColor = note.type === 'temporary' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-amber-500/10 border-amber-500/20';
+                const iconColor = note.type === 'temporary' ? 'text-blue-400' : 'text-amber-400';
+                const icon = note.type === 'temporary' 
+                    ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>'
+                    : '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+                
+                html += `<div class="flex items-start gap-3 p-3 rounded-lg border ${bgColor}">`;
+                html += `<div class="${iconColor} flex-shrink-0 mt-0.5">${icon}</div>`;
+                html += `<div class="text-sm text-slate-300 flex-1">${note.message}</div>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+            notesContent.innerHTML = html;
+        }
+        
+        // Refresh roster
+        function refreshRoster() {
+            loadRoster();
+        }
+        
+        // Load on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!SCRIPT_URL) {
+                document.body.innerHTML = '<div class="max-w-7xl mx-auto px-4 py-8 text-center"><h1 class="text-2xl font-bold text-red-400 mb-4">Error: Script URL not configured</h1><p class="text-slate-400">Please open this page from the main dashboard.</p></div>';
+                return;
+            }
+            
+            // Store script URL for refresh
+            localStorage.setItem('scriptUrl', SCRIPT_URL);
+            loadRoster();
+        });
+    </script>
+</body>
+</html>
+
